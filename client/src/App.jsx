@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.38'
-const TENALI_BUILD_DATE = '2026-04-29 08:53 IST'
+const TENALI_VERSION = '1.0.39'
+const TENALI_BUILD_DATE = '2026-04-29 09:05 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -1131,9 +1131,12 @@ function ScaffoldedTablesApp({ studentName, defaultTable = 2 }) {
     } else {
       setFastStreak(0)
       if (!correct) {
-        setStatusMsg(`Incorrect. ${level <= 4 ? 'Check the reference and try again!' : 'Keep going!'}`)
+        setStatusMsg(`Not quite — ${level <= 4 ? 'check the reference and have another go!' : 'keep going, you\'ve got this 💪'}`)
       } else {
-        setStatusMsg(`Correct but slow (${(elapsed / 1000).toFixed(1)}s). Under ${FAST_MS / 1000}s to count!`)
+        // Correct, but didn't beat the fast threshold. Encourage rather than
+        // tag the answer as "slow" — point at the next milestone and remind
+        // the student that every attempt is making them faster.
+        setStatusMsg(`Correct! ${(elapsed / 1000).toFixed(1)}s — you'll soon be under ${FAST_MS / 1000}s, keep going 🚀`)
       }
     }
   }
