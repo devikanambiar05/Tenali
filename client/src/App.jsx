@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.39'
-const TENALI_BUILD_DATE = '2026-04-29 09:05 IST'
+const TENALI_VERSION = '1.0.40'
+const TENALI_BUILD_DATE = '2026-04-29 09:19 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -8425,11 +8425,13 @@ function adaptivePct(score) { return Math.min(100, Math.max(0, (score / 3) * 100
  * difficulty, results table, auto-advance, "Solve" button) but renders each
  * question as a 4-button options grid instead of a free-form text input.
  */
-function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip }) {
+function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly }) {
   return function GeneratedMCQuizApp({ onBack }) {
     const diffs = Object.keys(diffLabels)
     const [difficulty, setDifficulty] = useState(diffs[0])
-    const [isAdaptive, setIsAdaptive] = useState(false)
+    // When adaptiveOnly is set (used by all gym puzzles), the difficulty
+    // selector is hidden and the quiz always runs in adaptive mode.
+    const [isAdaptive, setIsAdaptive] = useState(!!adaptiveOnly)
     const [adaptScore, setAdaptScore] = useState(0)
     const [numQuestions, setNumQuestions] = useState(String(DEFAULT_TOTAL))
     const [started, setStarted] = useState(false)
@@ -8596,18 +8598,27 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip }) {
         {!started && !finished && <div className="welcome-box">
           <p className="welcome-text">Practice {title.toLowerCase()}!</p>
           {tip && <p style={{ fontSize: '0.85rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>{tip}</p>}
-          <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-            {diffs.map(d => (
-              <label key={d} className={`checkbox-pill${!isAdaptive && difficulty === d ? ' active' : ''}`}>
-                <input type="radio" name={`${apiPath}-diff`} checked={!isAdaptive && difficulty === d} onChange={() => { setDifficulty(d); setIsAdaptive(false) }} />
-                {diffLabels[d]}
+          {/* Difficulty selector — hidden entirely for adaptive-only puzzles
+              (the gym puzzles), which always run in adaptive mode. */}
+          {!adaptiveOnly && (
+            <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+              {diffs.map(d => (
+                <label key={d} className={`checkbox-pill${!isAdaptive && difficulty === d ? ' active' : ''}`}>
+                  <input type="radio" name={`${apiPath}-diff`} checked={!isAdaptive && difficulty === d} onChange={() => { setDifficulty(d); setIsAdaptive(false) }} />
+                  {diffLabels[d]}
+                </label>
+              ))}
+              <label className={`checkbox-pill${isAdaptive ? ' active' : ''}`} style={isAdaptive ? { background: 'linear-gradient(135deg, #4caf50, #ff9800, #f44336, #9c27b0)', color: '#fff', border: 'none' } : {}}>
+                <input type="radio" name={`${apiPath}-diff`} checked={isAdaptive} onChange={() => setIsAdaptive(true)} />
+                Adaptive
               </label>
-            ))}
-            <label className={`checkbox-pill${isAdaptive ? ' active' : ''}`} style={isAdaptive ? { background: 'linear-gradient(135deg, #4caf50, #ff9800, #f44336, #9c27b0)', color: '#fff', border: 'none' } : {}}>
-              <input type="radio" name={`${apiPath}-diff`} checked={isAdaptive} onChange={() => setIsAdaptive(true)} />
-              Adaptive
-            </label>
-          </div>
+            </div>
+          )}
+          {adaptiveOnly && (
+            <div className="checkbox-pill active" style={{ background: 'linear-gradient(135deg, #4caf50, #ff9800, #f44336, #9c27b0)', color: '#fff', border: 'none', marginBottom: '12px', display: 'inline-block' }}>
+              Adaptive mode
+            </div>
+          )}
           {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
           <div className="question-count-row">
             <label className="question-count-label">How many questions?</label>
@@ -9480,6 +9491,7 @@ const BankingApp = makeQuizApp({
 // distractors that test sign and decimal-place precision.
 const GymDecimalsApp = makeMCQuizApp({
   title: 'Gym Decimals', subtitle: 'Signed decimal multiplication — 1-digit × 1-digit', apiPath: 'gymdecimals-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — shift ≤ 1 place',
     medium: 'Medium — ≤ 2 places',
@@ -9495,6 +9507,7 @@ const GymDecimalsApp = makeMCQuizApp({
 const FuncGymApp = makeMCQuizApp({
   title: 'Functions Gym', subtitle: 'Evaluate small polynomials & rationals',
   apiPath: 'funcgym-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — degree 1 (ax + b)',
     medium: 'Medium — degree 2 (ax² + bx + c)',
@@ -9508,6 +9521,7 @@ const FuncGymApp = makeMCQuizApp({
 const DotProdGymApp = makeMCQuizApp({
   title: 'DotProducts Gym', subtitle: 'a · b for 2- and 3-tuples (signed digits)',
   apiPath: 'dotprodgym-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — 2D vectors',
     medium: 'Medium — mixed 2D / 3D',
@@ -9521,6 +9535,7 @@ const DotProdGymApp = makeMCQuizApp({
 const FracAddGymApp = makeMCQuizApp({
   title: 'Fractions-add-gym', subtitle: 'Add single-digit fractions',
   apiPath: 'fracaddgym-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — same denominator',
     medium: 'Medium — different denominators',
@@ -9535,6 +9550,7 @@ const FracAddGymApp = makeMCQuizApp({
 const LinEqGymApp = makeMCQuizApp({
   title: 'LinearEquations-Gym', subtitle: 'Solve linear equations with integer answers',
   apiPath: 'lineqgym-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — ax + b = 0, |a| ≤ 5',
     medium: 'Medium — ax + b = 0, |a| ≤ 9',
@@ -9548,6 +9564,7 @@ const LinEqGymApp = makeMCQuizApp({
 const IndicesGymApp = makeMCQuizApp({
   title: 'Indices-Gym', subtitle: 'Apply index laws — multiply, divide, power',
   apiPath: 'indicesgym-api',
+  adaptiveOnly: true,
   diffLabels: {
     easy: 'Easy — multiply / divide on one base',
     medium: 'Medium — adds (a^k)^l',
