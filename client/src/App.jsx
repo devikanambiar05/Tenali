@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.49'
-const TENALI_BUILD_DATE = '2026-04-30 07:42 IST'
+const TENALI_VERSION = '1.0.50'
+const TENALI_BUILD_DATE = '2026-04-30 07:54 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -8413,6 +8413,14 @@ function adaptiveLevel(score) { return ADAPT_DIFFS[Math.min(Math.max(Math.round(
 function adaptivePct(score) { return Math.min(100, Math.max(0, (score / 3) * 100)) }
 
 /**
+ * GYM_OPTION_LABEL — Display map used by all Gym MCQ rendering. The server
+ * still emits options keyed by letters (A/B/C/D) and the keyboard shortcuts
+ * map 1–4 onto those same letters. This is purely a visual relabel so the
+ * on-screen label matches the digit the user types — easier on the eyes.
+ */
+const GYM_OPTION_LABEL = { A: '1', B: '2', C: '3', D: '4' }
+
+/**
  * makeMCQuizApp — Factory for multiple-choice quizzes (Gym-style puzzles).
  *
  * Server contract:
@@ -8632,8 +8640,8 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
             {isAdaptive && <div className="progress-pill" style={{ background: ADAPT_COLORS[curAdaptLevel], color: '#fff' }}>{ADAPT_LABELS[curAdaptLevel]}</div>}
           </div>
           {question && <div style={{ textAlign: 'center' }}>
-            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
-            <div className="options-grid">
+            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}>{question.prompt}</div>
+            <div className="options-grid" style={{ marginTop: '4px' }}>
               {question.options.map(opt => {
                 const isSelected = selectedOption === opt.option
                 const isCorrectOpt = revealed && correctOption === opt.option
@@ -8643,7 +8651,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
                     className={`option-card ${isSelected ? 'selected' : ''} ${isCorrectOpt ? 'correct-option' : ''} ${isWrongPick ? 'wrong-option' : ''}`}
                     onClick={() => !revealed && handleSelect(opt.option)}
                     disabled={revealed}>
-                    <strong>{opt.option}.</strong> {opt.text}
+                    <strong>{GYM_OPTION_LABEL[opt.option] || opt.option}.</strong> {opt.text}
                   </button>
                 )
               })}
@@ -9911,8 +9919,8 @@ function GymApp({ onBack }) {
           {currentDifficulty && <div className="progress-pill" style={{ background: ADAPT_COLORS[currentDifficulty], color: '#fff' }}>{currentDifficulty}</div>}
         </div>
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
-          <div className="options-grid">
+          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}>{question.prompt}</div>
+          <div className="options-grid" style={{ marginTop: '4px' }}>
             {question.options.map(opt => {
               const isSelected = selectedOption === opt.option
               const isCorrectOpt = revealed && correctOption === opt.option
@@ -9922,7 +9930,7 @@ function GymApp({ onBack }) {
                   className={`option-card ${isSelected ? 'selected' : ''} ${isCorrectOpt ? 'correct-option' : ''} ${isWrongPick ? 'wrong-option' : ''}`}
                   onClick={() => !revealed && handleSelect(opt.option)}
                   disabled={revealed}>
-                  <strong>{opt.option}.</strong> {opt.text}
+                  <strong>{GYM_OPTION_LABEL[opt.option] || opt.option}.</strong> {opt.text}
                 </button>
               )
             })}
