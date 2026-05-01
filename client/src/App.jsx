@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.81'
-const TENALI_BUILD_DATE = '2026-05-02 04:11 IST'
+const TENALI_VERSION = '1.0.82'
+const TENALI_BUILD_DATE = '2026-05-02 04:12 IST'
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
