@@ -7686,6 +7686,81 @@ const Bridge15App = makeBridgeApp({
   nextHref: '/chapter5', nextLabel: 'On to Lesson 6',
 })
 
+// ─── Bridge 16 — "Fraction OF a Number" / "What fraction is M of N" ───
+function generateBridge16Question() {
+  const v = Math.random()
+  if (v < 0.6) {
+    // a/b of N = a/b × N (chosen so result is a clean integer)
+    const { p, q } = bridge_pickSimplestFraction(7)
+    const k = bridge_randInt(2, 8)
+    const N = q * k
+    const answer = p * k
+    const prompt = ['What is  ', { frac: [p, q] }, `  of  ${N}?`]
+    const candidates = [
+      q * k,         // multiplied N by denominator (mistake: used wrong slot)
+      N - answer,    // the "other" portion (e.g., 1 - p/q)
+      p + N,         // added instead
+      Math.round(N / q),  // forgot numerator
+      answer + 1, answer - 1,
+    ]
+    const { options, correctIndex } = bridge_buildOptions(answer, candidates)
+    return { prompt, options, correctIndex,
+             explanation: [{ frac: [p, q] }, ` of ${N}  =  `, { frac: [p, q] }, ` × ${N}  =  ${p}×${N}÷${q}  =  ${p * N}÷${q}  =  ${answer}.`] }
+  } else {
+    // "What fraction of N is M?"  → M/N simplified
+    const { p, q } = bridge_pickSimplestFraction(9)
+    const k = bridge_randInt(2, 6)
+    const N = q * k
+    const M = p * k
+    const prompt = `What fraction of  ${N}  is  ${M}?`
+    const answerKey = `frac:${p}/${q}`
+    const dist = []
+    const tryAdd = (n, d) => {
+      if (!Number.isInteger(n) || !Number.isInteger(d) || n <= 0 || d <= 0) return
+      const ky = `frac:${n}/${d}`
+      if (ky === answerKey || dist.find(x => x.key === ky)) return
+      dist.push({ seg: [{ frac: [n, d] }], key: ky })
+    }
+    tryAdd(M, N)         // unsimplified
+    tryAdd(N, M)         // flipped (asked the wrong way around)
+    tryAdd(q, p)         // simplest flipped
+    if (p > 1) tryAdd(p - 1, q)
+    if (q > p + 1) tryAdd(p, q - 1)
+    const { options, correctIndex } = bridge_buildSegOptions([{ frac: [p, q] }], answerKey, dist)
+    return { prompt, options, correctIndex,
+             explanation: [`Form the fraction `, { frac: [M, N] }, ` (the part over the whole), then simplify (HCF = ${k}): `, { frac: [p, q] }, '.'] }
+  }
+}
+
+function Lesson7ProgressionStrip({ current }) {
+  const nodes = [
+    { id: 'lesson6',  label: 'Lesson 6',  sub: 'Decimals in Fractions', href: '/chapter5', done: ch5LessonDone('L6') },
+    { id: 'bridge16', label: 'Bridge 16', sub: '"of" / "what fraction"', href: '/bridge16' },
+    { id: 'lesson7',  label: 'Lesson 7',  sub: 'Word Problems',        href: '/chapter5' },
+  ]
+  return renderProgressionStrip('Lesson 7 — Prerequisite Path', nodes, current)
+}
+
+const Bridge16App = makeBridgeApp({
+  id: 'bridge16', currentNode: 'bridge16', StripComponent: Lesson7ProgressionStrip,
+  title: 'Bridge 16 · "OF" and "What Fraction"',
+  subtitle: 'Translate words into fraction calculations.',
+  intro: 'Word problems with fractions usually come down to two patterns: "a/b OF N" (means a/b × N), and "what fraction of N is M?" (means M/N, simplified). This drill cements both.',
+  teach: {
+    rule: ['"a/b OF N"  =  ', { frac: ['a', 'b'] }, ' × N  =  ', { frac: ['a × N', 'b'] }, '.   "What fraction of N is M?"  =  ', { frac: ['M', 'N'] }, ', simplified.'],
+    example: {
+      setup: ['What is  ', { frac: [2, 3] }, '  of 12?'],
+      steps: [
+        ['Multiply: ', { frac: [2, 3] }, ' × 12 = (2 × 12) ÷ 3.'],
+        '24 ÷ 3 = 8.',
+      ],
+      answer: [{ frac: [2, 3] }, ' of 12 = 8.'],
+    },
+  },
+  generator: generateBridge16Question,
+  nextHref: '/chapter5', nextLabel: 'On to Lesson 7',
+})
+
 function Chapter5App({ onBack }) {
   const [progress, setProgress] = useState(ch5_loadProgress)
   const [activeId, setActiveId] = useState(null)
@@ -7942,6 +8017,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
         {activeId === 'L5' && <Lesson5ProgressionStrip current="lesson5" />}
         {activeId === 'L6' && <Lesson6ProgressionStrip current="lesson6" />}
+        {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
         <h2 style={{ marginBottom: 4 }}>{ch5RenderMath(lesson.title)}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
@@ -7978,6 +8054,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
         {activeId === 'L5' && <Lesson5ProgressionStrip current="lesson5" />}
         {activeId === 'L6' && <Lesson6ProgressionStrip current="lesson6" />}
+        {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
         <h2>🎉 Lesson complete</h2>
         <p>You finished <strong>{ch5RenderMath(lesson.title)}</strong>.</p>
         {next ? (
@@ -8016,6 +8093,7 @@ function Chapter5App({ onBack }) {
       {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
       {activeId === 'L5' && <Lesson5ProgressionStrip current="lesson5" />}
       {activeId === 'L6' && <Lesson6ProgressionStrip current="lesson6" />}
+      {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
       <h3 style={{ marginBottom: 8 }}>{ch5RenderMath(lesson.title)}</h3>
       {/* Question slider — drag to jump to any question in the play sequence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -34728,6 +34806,7 @@ function App() {
   if (pathname === '/bridge13') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge13App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge14') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge14App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge15') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge15App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge16') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge16App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
 
   // Route: /chapter1 → Cambridge IGCSE Chapter 1 (Reviewing Number Concepts)
   if (pathname === '/chapter1') {
