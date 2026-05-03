@@ -61,6 +61,16 @@ app.use(express.json());
 // Static file serving: Serve built React/Vue client
 app.use(express.static(clientDistPath));
 
+// ─── Auth (MongoDB + JWT) ────────────────────────────────────────────────────
+// Adds /api/auth/login and /api/auth/me. Hardcoded users are seeded into
+// MongoDB on startup. If Mongo is unreachable the rest of the server still
+// serves; only the auth endpoints will return 503.
+const auth = require('./auth');
+app.use('/api/auth', auth.router);
+auth.connectMongo()
+  .then(() => auth.seedUsers())
+  .catch(err => console.error('[auth] Mongo connect failed:', err.message));
+
 /**
  * EXPLANATION SUPPORT MIDDLEWARE
  * ═══════════════════════════════════════════════════════════════════════════

@@ -28,8 +28,225 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.84'
-const TENALI_BUILD_DATE = '2026-05-03 17:10 IST'
+const TENALI_VERSION = '1.0.85'
+const TENALI_BUILD_DATE = '2026-05-03 18:18 IST'
+
+// ─── Auth helpers ───────────────────────────────────────────────────────────
+// Tiny pub/sub on top of localStorage so AuthMenu and AuthGate stay in sync.
+const AUTH_TOKEN_KEY = 'tenali-auth-token'
+const AUTH_USER_KEY  = 'tenali-auth-user'
+const AUTH_EVENT     = 'tenali-auth-change'
+function authGetToken() { try { return localStorage.getItem(AUTH_TOKEN_KEY) || null } catch { return null } }
+function authGetUser()  { try { return JSON.parse(localStorage.getItem(AUTH_USER_KEY) || 'null') } catch { return null } }
+function authSet(token, user) {
+  try {
+    localStorage.setItem(AUTH_TOKEN_KEY, token)
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+  } catch {}
+  try { window.dispatchEvent(new Event(AUTH_EVENT)) } catch {}
+}
+function authClear() {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY)
+    localStorage.removeItem(AUTH_USER_KEY)
+  } catch {}
+  try { window.dispatchEvent(new Event(AUTH_EVENT)) } catch {}
+}
+function useAuth() {
+  const [user, setUser] = useState(authGetUser)
+  useEffect(() => {
+    const onChange = () => setUser(authGetUser())
+    window.addEventListener(AUTH_EVENT, onChange)
+    window.addEventListener('storage', onChange)
+    return () => {
+      window.removeEventListener(AUTH_EVENT, onChange)
+      window.removeEventListener('storage', onChange)
+    }
+  }, [])
+  const login = async (username, password) => {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ error: 'login failed' }))
+      throw new Error(err.error || `login failed (HTTP ${r.status})`)
+    }
+    const data = await r.json()
+    authSet(data.token, data.user)
+    setUser(data.user)
+    return data.user
+  }
+  const logout = () => { authClear(); setUser(null) }
+  return { user, login, logout }
+}
+
+// Hamburger button (top-right) + dropdown + login modal.
+// Renders globally — sits next to the .theme-toggle.
+function AuthMenu() {
+  const { user, login, logout } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') { setOpen(false); setShowLogin(false); setError('') } }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  const submit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault()
+    setError(''); setBusy(true)
+    try {
+      await login(username.trim(), password)
+      setShowLogin(false); setOpen(false)
+      setUsername(''); setPassword('')
+    } catch (err) {
+      setError(err.message || 'login failed')
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Menu"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          position: 'fixed', top: 16, right: 64, zIndex: 101,
+          width: 40, height: 40, borderRadius: '50%',
+          background: 'var(--clr-surface, #1c1c1f)',
+          border: '1px solid var(--clr-border, #444)',
+          color: 'var(--clr-text, #eee)',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+          padding: 0,
+        }}
+        title="Menu"
+      >
+        <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ width: 18, height: 2, background: 'currentColor', borderRadius: 1 }} />
+          <span style={{ width: 18, height: 2, background: 'currentColor', borderRadius: 1 }} />
+          <span style={{ width: 18, height: 2, background: 'currentColor', borderRadius: 1 }} />
+        </span>
+      </button>
+
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'transparent' }} />
+          <div style={{
+            position: 'fixed', top: 64, right: 16, zIndex: 102,
+            minWidth: 200, padding: 6,
+            background: 'var(--clr-surface, #1c1c1f)',
+            border: '1px solid var(--clr-border, #444)',
+            borderRadius: 10, boxShadow: '0 6px 18px rgba(0,0,0,0.35)',
+            color: 'var(--clr-text)',
+          }}>
+            {user ? (
+              <>
+                <div style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: 0.75 }}>
+                  Signed in as <strong>{user.username}</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { logout(); setOpen(false) }}
+                  style={{ width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  Log out
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setShowLogin(true); setOpen(false) }}
+                style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+              >
+                Log in
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {showLogin && (
+        <div
+          onClick={() => { setShowLogin(false); setError('') }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <form
+            onClick={e => e.stopPropagation()}
+            onSubmit={submit}
+            style={{
+              minWidth: 320, maxWidth: 360, padding: 24,
+              background: 'var(--clr-surface, #1c1c1f)',
+              border: '1px solid var(--clr-border, #444)',
+              borderRadius: 12,
+              color: 'var(--clr-text)',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: 16 }}>Log in</h2>
+            <label style={{ display: 'block', marginBottom: 12, fontSize: '0.9rem' }}>
+              Username
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                autoFocus
+                autoComplete="username"
+                style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid var(--clr-border, #555)', background: 'var(--clr-surface, #1c1c1f)', color: 'var(--clr-text)', boxSizing: 'border-box' }}
+              />
+            </label>
+            <label style={{ display: 'block', marginBottom: 12, fontSize: '0.9rem' }}>
+              Password
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoComplete="current-password"
+                style={{ display: 'block', width: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 6, border: '1px solid var(--clr-border, #555)', background: 'var(--clr-surface, #1c1c1f)', color: 'var(--clr-text)', boxSizing: 'border-box' }}
+              />
+            </label>
+            {error && <p style={{ color: '#f85149', margin: '8px 0', fontSize: '0.85rem' }}>{error}</p>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => { setShowLogin(false); setError('') }}
+                style={{ padding: '8px 14px', borderRadius: 6, background: 'transparent', border: '1px solid var(--clr-border, #555)', color: 'var(--clr-text)', cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={busy}
+                style={{ padding: '8px 18px', borderRadius: 6, background: '#2ea043', color: '#fff', border: 'none', cursor: busy ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                {busy ? 'Logging in…' : 'Log in'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
+  )
+}
+
+// Wraps a route's content; if not logged in, shows a "log in to continue" notice.
+function AuthGate({ children }) {
+  const { user } = useAuth()
+  if (user) return children
+  return (
+    <div style={{ maxWidth: 520, margin: '4rem auto', padding: '2rem', textAlign: 'center', color: 'var(--clr-text)' }}>
+      <h1 style={{ marginBottom: 8 }}>🔒 Login required</h1>
+      <p style={{ opacity: 0.85, lineHeight: 1.6 }}>
+        This page is only available to signed-in users. Open the <strong>menu</strong> in the top-right corner and choose <strong>Log in</strong>.
+      </p>
+    </div>
+  )
+}
 
 // Inject version badge into DOM once (appears on all routes)
 ;(() => {
@@ -32765,9 +32982,9 @@ function TenthApp({ onBack }) {
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16 }}>
         <button className="back-button" onClick={onBack}>← Home</button>
       </div>
-      <h1 style={{ marginBottom: 4 }}>Tenth — Cambridge IGCSE Mathematics</h1>
+      <h1 style={{ marginBottom: 4 }}>Tenth</h1>
       <p className="subtitle" style={{ marginTop: 0 }}>
-        All 24 chapters from the Core &amp; Extended coursebook, broken into bite-sized lessons with worked examples and ramped practice questions.
+        All 24 chapters, broken into bite-sized lessons with worked examples and ramped practice questions.
       </p>
       <p style={{ opacity: 0.85, marginTop: 8, marginBottom: 24 }}>
         Pick any chapter to start. Every lesson is unlocked from the moment the page loads, and your progress is remembered between sessions.
@@ -32813,9 +33030,6 @@ function TenthApp({ onBack }) {
         </section>
       ))}
 
-      <p style={{ marginTop: 28, fontSize: '0.82rem', opacity: 0.55, textAlign: 'center' }}>
-        Source: Cambridge IGCSE™ Mathematics Core &amp; Extended Coursebook (2nd ed.).
-      </p>
     </div>
   )
 }
@@ -32938,7 +33152,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <TenthApp onBack={() => { window.location.href = '/' }} />
+        <AuthGate><TenthApp onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -32950,7 +33164,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter1App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter1App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -32962,7 +33176,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter2App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter2App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -32974,7 +33188,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter3App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter3App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -32986,7 +33200,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter4App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter4App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -32998,7 +33212,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter5App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter5App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33010,7 +33224,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter6App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter6App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33022,7 +33236,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter7App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter7App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33034,7 +33248,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter8App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter8App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33046,7 +33260,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter9App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter9App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33058,7 +33272,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter10App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter10App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33070,7 +33284,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter11App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter11App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33082,7 +33296,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter12App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter12App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33094,7 +33308,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter13App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter13App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33106,7 +33320,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter14App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter14App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33118,7 +33332,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter15App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter15App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33130,7 +33344,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter16App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter16App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33142,7 +33356,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter17App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter17App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33154,7 +33368,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter18App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter18App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33166,7 +33380,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter19App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter19App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33178,7 +33392,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter20App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter20App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33190,7 +33404,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter21App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter21App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33202,7 +33416,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter22App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter22App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33214,7 +33428,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter23App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter23App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -33226,7 +33440,7 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <Chapter24App onBack={() => { window.location.href = '/' }} />
+        <AuthGate><Chapter24App onBack={() => { window.location.href = '/' }} /></AuthGate>
       </>
     )
   }
@@ -46717,3 +46931,6 @@ function QuizLayout({ title, subtitle, onBack, children, timer }) {
 
 // Export main App component (entry point)
 export default App
+
+// Named export so main.jsx can render the global hamburger menu next to <App />
+export { AuthMenu }

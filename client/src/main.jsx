@@ -21,7 +21,7 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App, { AuthMenu } from './App'
 import './index.css'
 
 // Create React root and render the App component
@@ -29,5 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   // StrictMode: Enables additional development checks and warnings
   <React.StrictMode>
     <App />
+    {/* Hamburger menu (login/logout) — fixed top-right, visible on every page */}
+    <AuthMenu />
   </React.StrictMode>,
 )
