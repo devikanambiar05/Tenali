@@ -6598,8 +6598,10 @@ function ch5LessonDone(lessonId) {
   } catch (_e) { return false }
 }
 
-// Stacked fraction component.
+// Stacked fraction component.  If d === 1 the value is a whole number and
+// we render it as a plain digit (avoids the awkward "8 over 1" look).
 function BridgeFrac({ n, d }) {
+  if (d === 1 || d === '1') return <span style={{ fontFamily: 'Source Serif 4, serif' }}>{n}</span>
   const cellStyle = { display: 'block', padding: '0 0.32em' }
   return (
     <span style={{
@@ -7164,6 +7166,253 @@ const Bridge8App = makeBridgeApp({
   nextHref: '/chapter5', nextLabel: 'On to Lesson 3',
 })
 
+// ─── Bridge 9 — Add/Subtract Same Denominator ─────────────────────────
+function generateBridge9Question() {
+  const isAdd = Math.random() < 0.6
+  const c = bridge_randInt(3, 12)
+  let a, b, num
+  if (isAdd) {
+    a = bridge_randInt(1, c - 1)
+    b = bridge_randInt(1, c)
+    num = a + b
+  } else {
+    a = bridge_randInt(2, c - 1)
+    b = bridge_randInt(1, a - 1)
+    num = a - b
+  }
+  const g = bridge_gcd(num, c)
+  const sn = num / g, sd = c / g
+  const op = isAdd ? '+' : '−'
+  const prompt = [{ frac: [a, c] }, `  ${op}  `, { frac: [b, c] }]
+  const answerKey = `frac:${sn}/${sd}`
+  const dist = []
+  const tryAdd = (n, d) => {
+    if (!Number.isInteger(n) || !Number.isInteger(d) || n <= 0 || d <= 0) return
+    const k = `frac:${n}/${d}`
+    if (k === answerKey || dist.find(x => x.key === k)) return
+    dist.push({ seg: [{ frac: [n, d] }], key: k })
+  }
+  tryAdd(num, c + c)                          // added denominators (classic)
+  if (num !== sn || c !== sd) tryAdd(num, c)  // unsimplified
+  tryAdd(isAdd ? a - b : a + b, c)            // wrong operation
+  tryAdd(a * b, c)                            // multiplied
+  if (sn > 1) tryAdd(sn - 1, sd)
+  const { options, correctIndex } = bridge_buildSegOptions([{ frac: [sn, sd] }], answerKey, dist)
+  const explanation = num !== sn
+    ? [`Same denominator. ${a} ${op} ${b} = ${num}. So  `, { frac: [a, c] }, ` ${op} `, { frac: [b, c] }, ' = ', { frac: [num, c] }, ' = ', { frac: [sn, sd] }, '.']
+    : [`Same denominator. ${a} ${op} ${b} = ${num}. So  `, { frac: [a, c] }, ` ${op} `, { frac: [b, c] }, ' = ', { frac: [sn, sd] }, '.']
+  return { prompt, options, correctIndex, explanation }
+}
+
+// ─── Bridge 10 — LCM Hunt ─────────────────────────────────────────────
+function generateBridge10Question() {
+  const tier = Math.random()
+  let m, n
+  if (tier < 0.3) { m = bridge_randInt(2, 6); n = bridge_randInt(2, 6) }
+  else if (tier < 0.7) { m = bridge_randInt(3, 12); n = bridge_randInt(3, 12) }
+  else { m = bridge_randInt(4, 20); n = bridge_randInt(4, 20) }
+  if (m === n) n = (n % 12) + 2  // make different
+  const hcf = bridge_gcd(m, n)
+  const lcm = (m * n) / hcf
+  const candidates = [
+    m * n, hcf, Math.max(m, n), Math.min(m, n),
+    lcm + Math.min(m, n), lcm - Math.min(m, n),
+  ]
+  const { options, correctIndex } = bridge_buildOptions(lcm, candidates)
+  const prompt = `Find  LCM(${m},  ${n})`
+  const explanation = hcf > 1
+    ? `${m} × ${n} = ${m * n}.  HCF(${m}, ${n}) = ${hcf}.  LCM = product ÷ HCF = ${m * n} ÷ ${hcf} = ${lcm}.`
+    : `${m} and ${n} share no common factor (HCF = 1), so LCM = ${m} × ${n} = ${lcm}.`
+  return { prompt, options, correctIndex, explanation }
+}
+
+// ─── Bridge 11 — Add/Subtract Different Denominators ──────────────────
+function generateBridge11Question() {
+  let f1, f2, attempts = 0
+  while (attempts++ < 30) {
+    f1 = bridge_pickSimplestFraction(8)
+    f2 = bridge_pickSimplestFraction(8)
+    if (f1.q !== f2.q) break
+  }
+  if (f1.q === f2.q) f2 = { p: 1, q: f1.q + 1 }
+  const isAdd = Math.random() < 0.6
+  const lcm = (f1.q * f2.q) / bridge_gcd(f1.q, f2.q)
+  const k1 = lcm / f1.q, k2 = lcm / f2.q
+  const a1 = f1.p * k1, a2 = f2.p * k2
+  let num
+  if (isAdd) num = a1 + a2
+  else { num = a1 - a2; if (num <= 0) return generateBridge11Question() }
+  const g = bridge_gcd(num, lcm)
+  const sn = num / g, sd = lcm / g
+  const op = isAdd ? '+' : '−'
+  const prompt = [{ frac: [f1.p, f1.q] }, `  ${op}  `, { frac: [f2.p, f2.q] }]
+  const answerKey = `frac:${sn}/${sd}`
+  const dist = []
+  const tryAdd = (n, d) => {
+    if (!Number.isInteger(n) || !Number.isInteger(d) || n <= 0 || d <= 0) return
+    const k = `frac:${n}/${d}`
+    if (k === answerKey || dist.find(x => x.key === k)) return
+    dist.push({ seg: [{ frac: [n, d] }], key: k })
+  }
+  // Distractors:
+  tryAdd(isAdd ? f1.p + f2.p : Math.abs(f1.p - f2.p), f1.q + f2.q)  // added across (classic mistake)
+  if (sn !== num || sd !== lcm) tryAdd(num, lcm)                    // unsimplified
+  tryAdd(f1.p * f2.q + f2.p * f1.q, f1.q * f2.q)                    // used product as common denom (also valid!), different presentation
+  tryAdd(isAdd ? f1.p + f2.p : Math.abs(f1.p - f2.p), Math.max(f1.q, f2.q))  // kept original denom
+  if (sn > 1) tryAdd(sn - 1, sd)
+  const { options, correctIndex } = bridge_buildSegOptions([{ frac: [sn, sd] }], answerKey, dist)
+  const explanation = [
+    `LCM(${f1.q}, ${f2.q}) = ${lcm}.  Rewrite: `,
+    { frac: [a1, lcm] }, ` ${op} `, { frac: [a2, lcm] }, ' = ',
+    { frac: [num, lcm] },
+    num !== sn ? [' = ', { frac: [sn, sd] }] : '',
+    '.',
+  ]
+  return { prompt, options, correctIndex, explanation }
+}
+
+// ─── Bridge 12 — Add/Subtract Mixed Numbers ───────────────────────────
+function generateBridge12Question() {
+  const w1 = bridge_randInt(1, 4)
+  const f1 = bridge_pickSimplestFraction(6)
+  const w2 = bridge_randInt(1, 4)
+  const f2 = bridge_pickSimplestFraction(6)
+  const isAdd = Math.random() < 0.6
+  const a = w1 * f1.q + f1.p, b = f1.q
+  const c = w2 * f2.q + f2.p, d = f2.q
+  const lcm = (b * d) / bridge_gcd(b, d)
+  const k1 = lcm / b, k2 = lcm / d
+  const aa = a * k1, cc = c * k2
+  let num
+  if (isAdd) num = aa + cc
+  else { num = aa - cc; if (num <= 0) return generateBridge12Question() }
+  const g = bridge_gcd(num, lcm)
+  const sn = num / g, sd = lcm / g
+  const op = isAdd ? '+' : '−'
+  const prompt = [w1, { frac: [f1.p, f1.q] }, `  ${op}  `, w2, { frac: [f2.p, f2.q] }]
+  const answerKey = `frac:${sn}/${sd}`
+  const dist = []
+  const tryAdd = (n, dd) => {
+    if (!Number.isInteger(n) || !Number.isInteger(dd) || n <= 0 || dd <= 0) return
+    const k = `frac:${n}/${dd}`
+    if (k === answerKey || dist.find(x => x.key === k)) return
+    dist.push({ seg: [{ frac: [n, dd] }], key: k })
+  }
+  tryAdd(num, lcm)                                    // unsimplified
+  if (isAdd) tryAdd(w1 + w2, 1)                       // added wholes only
+  if (isAdd) tryAdd(f1.p + f2.p, f1.q + f2.q)         // ignored wholes, added fractions across
+  if (!isAdd) tryAdd(Math.abs(w1 - w2), 1)
+  if (sn > 1) tryAdd(sn - 1, sd)
+  const { options, correctIndex } = bridge_buildSegOptions([{ frac: [sn, sd] }], answerKey, dist)
+  const explanation = [
+    `Convert: `, w1, { frac: [f1.p, f1.q] }, ' = ', { frac: [a, b] }, ',  ',
+    w2, { frac: [f2.p, f2.q] }, ' = ', { frac: [c, d] },
+    `.  LCM(${b}, ${d}) = ${lcm}.  `,
+    { frac: [aa, lcm] }, ` ${op} `, { frac: [cc, lcm] }, ' = ', { frac: [num, lcm] },
+    num !== sn ? [' = ', { frac: [sn, sd] }] : '',
+    '.',
+  ]
+  return { prompt, options, correctIndex, explanation }
+}
+
+function Lesson4ProgressionStrip({ current }) {
+  const nodes = [
+    { id: 'lesson3', label: 'Lesson 3', sub: 'Multiplying',          href: '/chapter5', done: ch5LessonDone('L3') },
+    { id: 'bridge9', label: 'Bridge 9', sub: 'Same Denominator',     href: '/bridge9' },
+    { id: 'bridge10', label: 'Bridge 10', sub: 'LCM Hunt',            href: '/bridge10' },
+    { id: 'bridge11', label: 'Bridge 11', sub: 'Different Denom.',    href: '/bridge11' },
+    { id: 'bridge12', label: 'Bridge 12', sub: 'Mixed Add/Subtract',  href: '/bridge12' },
+    { id: 'lesson4',  label: 'Lesson 4', sub: 'Add & Subtract',      href: '/chapter5' },
+  ]
+  return renderProgressionStrip('Lesson 4 — Prerequisite Path', nodes, current)
+}
+
+const Bridge9App = makeBridgeApp({
+  id: 'bridge9', currentNode: 'bridge9', StripComponent: Lesson4ProgressionStrip,
+  title: 'Bridge 9 · Same Denominator',
+  subtitle: 'Add or subtract two fractions that share the same denominator.',
+  intro: 'When the denominators match, the work is easy: just add (or subtract) the tops, keep the bottom the same.',
+  teach: {
+    rule: ['When two fractions share the same bottom: ', { frac: ['a', 'c'] }, ' + ', { frac: ['b', 'c'] }, ' = ', { frac: ['a + b', 'c'] }, '.   Same for subtraction.   Then simplify if possible.   Important: do NOT add the denominators.'],
+    example: {
+      setup: [{ frac: [3, 8] }, '  +  ', { frac: [1, 8] }],
+      steps: [
+        'Same bottom (8). Just add tops: 3 + 1 = 4.',
+        ['So the result is ', { frac: [4, 8] }, '.  Simplify (HCF = 4): ', { frac: [1, 2] }, '.'],
+      ],
+      answer: [{ frac: [3, 8] }, ' + ', { frac: [1, 8] }, ' = ', { frac: [1, 2] }, '.'],
+    },
+  },
+  generator: generateBridge9Question,
+  nextHref: '/bridge10', nextLabel: 'Continue to Bridge 10',
+})
+
+const Bridge10App = makeBridgeApp({
+  id: 'bridge10', currentNode: 'bridge10', StripComponent: Lesson4ProgressionStrip,
+  title: 'Bridge 10 · LCM Hunt',
+  subtitle: 'Find the Lowest Common Multiple of two numbers.',
+  intro: 'A NEW concept: LCM — the smallest number that BOTH given numbers divide into. To add fractions with different denominators, we first need a common denominator — and the LCM gives us the smallest one.',
+  teach: {
+    rule: 'A MULTIPLE of a number is what you get by multiplying it by 1, 2, 3, … The LOWEST COMMON MULTIPLE (LCM) of two numbers is the smallest positive number that is a multiple of BOTH.   Quick formula: LCM(m, n) = (m × n) ÷ HCF(m, n).   If m and n share no factor, LCM is just m × n.',
+    example: {
+      setup: 'Find  LCM(4, 6)',
+      steps: [
+        'Multiples of 4: 4, 8, 12, 16, 20, …',
+        'Multiples of 6: 6, 12, 18, 24, …',
+        '12 is in both lists — and it\'s the smallest such number.',
+        'Check via formula: 4 × 6 = 24,  HCF(4, 6) = 2,  so LCM = 24 ÷ 2 = 12. ✓',
+      ],
+      answer: 'LCM(4, 6) = 12.',
+    },
+  },
+  generator: generateBridge10Question,
+  nextHref: '/bridge11', nextLabel: 'Continue to Bridge 11',
+})
+
+const Bridge11App = makeBridgeApp({
+  id: 'bridge11', currentNode: 'bridge11', StripComponent: Lesson4ProgressionStrip,
+  title: 'Bridge 11 · Different Denominators',
+  subtitle: 'Add or subtract two fractions whose denominators are different.',
+  intro: 'When denominators differ, you can\'t add directly. First find the LCM of the two denominators (Bridge 10), scale each fraction up to that denominator (Bridge 1), then add or subtract (Bridge 9).',
+  teach: {
+    rule: 'Three steps:  (1) find LCM of the two denominators — that\'s the common bottom;  (2) scale each fraction so its denominator becomes the LCM (multiply top and bottom by the same factor);  (3) add or subtract the tops, keep the common bottom.   Simplify at the end.',
+    example: {
+      setup: [{ frac: [3, 4] }, '  +  ', { frac: [4, 5] }],
+      steps: [
+        'LCM(4, 5) = 20  (since 4 and 5 share no factor).',
+        ['Scale: ', { frac: [3, 4] }, ' = ', { frac: [15, 20] }, ',  ', { frac: [4, 5] }, ' = ', { frac: [16, 20] }, '.'],
+        ['Add tops: 15 + 16 = 31.  Result: ', { frac: [31, 20] }, '.'],
+        '31 and 20 share no factor — already simplest.',
+      ],
+      answer: [{ frac: [3, 4] }, ' + ', { frac: [4, 5] }, ' = ', { frac: [31, 20] }, '.'],
+    },
+  },
+  generator: generateBridge11Question,
+  nextHref: '/bridge12', nextLabel: 'Continue to Bridge 12',
+})
+
+const Bridge12App = makeBridgeApp({
+  id: 'bridge12', currentNode: 'bridge12', StripComponent: Lesson4ProgressionStrip,
+  title: 'Bridge 12 · Mixed Add / Subtract',
+  subtitle: 'Add or subtract two mixed numbers.',
+  intro: 'Combines Bridges 7, 10, 11. Convert each mixed to improper, find the LCM of denominators, scale, then add or subtract.',
+  teach: {
+    rule: 'Four steps:  (1) convert each mixed number to improper (Bridge 7);  (2) find LCM of the two denominators (Bridge 10);  (3) scale each improper fraction up to that denominator;  (4) add or subtract tops.   Simplify at the end.',
+    example: {
+      setup: ['1', { frac: [1, 2] }, '  +  2', { frac: [1, 3] }],
+      steps: [
+        ['Convert: 1', { frac: [1, 2] }, ' = ', { frac: [3, 2] }, ',  2', { frac: [1, 3] }, ' = ', { frac: [7, 3] }, '.'],
+        'LCM(2, 3) = 6.',
+        ['Scale: ', { frac: [3, 2] }, ' = ', { frac: [9, 6] }, ',  ', { frac: [7, 3] }, ' = ', { frac: [14, 6] }, '.'],
+        ['Add: 9 + 14 = 23.  Result: ', { frac: [23, 6] }, '.'],
+      ],
+      answer: ['1', { frac: [1, 2] }, ' + 2', { frac: [1, 3] }, ' = ', { frac: [23, 6] }, '.'],
+    },
+  },
+  generator: generateBridge12Question,
+  nextHref: '/chapter5', nextLabel: 'On to Lesson 4',
+})
+
 function Chapter5App({ onBack }) {
   const [progress, setProgress] = useState(ch5_loadProgress)
   const [activeId, setActiveId] = useState(null)
@@ -7417,6 +7666,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L1' && <Lesson1ProgressionStrip current="lesson1" />}
         {activeId === 'L2' && <Lesson2ProgressionStrip current="lesson2" />}
         {activeId === 'L3' && <Lesson3ProgressionStrip current="lesson3" />}
+        {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
         <h2 style={{ marginBottom: 4 }}>{ch5RenderMath(lesson.title)}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
@@ -7450,6 +7700,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L1' && <Lesson1ProgressionStrip current="lesson1" />}
         {activeId === 'L2' && <Lesson2ProgressionStrip current="lesson2" />}
         {activeId === 'L3' && <Lesson3ProgressionStrip current="lesson3" />}
+        {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
         <h2>🎉 Lesson complete</h2>
         <p>You finished <strong>{ch5RenderMath(lesson.title)}</strong>.</p>
         {next ? (
@@ -7485,6 +7736,7 @@ function Chapter5App({ onBack }) {
       {activeId === 'L1' && <Lesson1ProgressionStrip current="lesson1" />}
       {activeId === 'L2' && <Lesson2ProgressionStrip current="lesson2" />}
       {activeId === 'L3' && <Lesson3ProgressionStrip current="lesson3" />}
+      {activeId === 'L4' && <Lesson4ProgressionStrip current="lesson4" />}
       <h3 style={{ marginBottom: 8 }}>{ch5RenderMath(lesson.title)}</h3>
       {/* Question slider — drag to jump to any question in the play sequence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -34190,6 +34442,10 @@ function App() {
   if (pathname === '/bridge6') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge6App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge7') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge7App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge8') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge8App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge9') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge9App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge10') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge10App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge11') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge11App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge12') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge12App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
 
   // Route: /chapter1 → Cambridge IGCSE Chapter 1 (Reviewing Number Concepts)
   if (pathname === '/chapter1') {
