@@ -7983,6 +7983,81 @@ const Bridge19App = makeBridgeApp({
   nextHref: '/chapter5', nextLabel: 'On to Lesson 9',
 })
 
+// ─── Bridge 20 — X as a percentage of Y ───────────────────────────────
+function generateBridge20Question() {
+  // Pick (X, Y) so that (X/Y)*100 is a clean integer or 1dp.
+  // Strategy: pick a "target percent" P (any integer 5..200) and a base Y (multiple of 100 or with HCF).
+  const tier = Math.random()
+  let X, Y, percent
+  if (tier < 0.6) {
+    // clean-integer percent
+    const Yq = bridge_pick([5, 10, 20, 25, 50, 100])
+    Y = Yq * bridge_randInt(1, 6)
+    const Pp = bridge_pick([5, 10, 20, 25, 30, 40, 50, 60, 75, 80, 100, 120, 150, 200])
+    X = (Y * Pp) / 100
+    if (!Number.isInteger(X)) X = Math.round(X)
+    percent = (X / Y) * 100
+  } else {
+    // 1dp percent
+    const Y0 = bridge_pick([3, 6, 8, 9, 12, 15, 16, 24, 30, 36])
+    Y = Y0 * bridge_randInt(1, 4)
+    X = bridge_randInt(1, Y - 1)
+    percent = Math.round((X / Y) * 1000) / 10
+  }
+  const pStr = percent === Math.round(percent) ? String(Math.round(percent)) + '%' : percent.toFixed(1) + '%'
+  const prompt = `What is  ${X}  as a percentage of  ${Y}?`
+  const answerKey = `txt:${pStr}`
+  const dist = []
+  const tryAdd = (s) => {
+    const k = `txt:${s}`
+    if (k === answerKey || dist.find(x => x.key === k)) return
+    dist.push({ seg: [s], key: k })
+  }
+  // Common mistakes
+  const reverse = (Y / X) * 100
+  if (isFinite(reverse)) {
+    const rs = reverse === Math.round(reverse) ? String(Math.round(reverse)) + '%' : reverse.toFixed(1) + '%'
+    tryAdd(rs)
+  }
+  tryAdd(`${X}%`)                          // forgot to divide
+  tryAdd(`${Y}%`)                          // used wrong number
+  tryAdd(`${X / Y}%`)                      // forgot to multiply by 100
+  tryAdd(`${(percent * 10).toFixed(0)}%`)
+  while (dist.length < 3) tryAdd(`${bridge_randInt(1, 200)}%`)
+  const { options, correctIndex } = bridge_buildSegOptions([pStr], answerKey, dist)
+  return { prompt, options, correctIndex,
+           explanation: `Form the fraction (part ÷ whole), then multiply by 100:  ${X} ÷ ${Y} = ${(X/Y).toFixed(4)},  × 100 = ${pStr}.` }
+}
+
+function Lesson10ProgressionStrip({ current }) {
+  const nodes = [
+    { id: 'lesson9',  label: 'Lesson 9',  sub: '% of an Amount',     href: '/chapter5', done: ch5LessonDone('L9') },
+    { id: 'bridge20', label: 'Bridge 20', sub: 'X as % of Y',        href: '/bridge20' },
+    { id: 'lesson10', label: 'Lesson 10', sub: 'One Num as % of Another', href: '/chapter5' },
+  ]
+  return renderProgressionStrip('Lesson 10 — Prerequisite Path', nodes, current)
+}
+
+const Bridge20App = makeBridgeApp({
+  id: 'bridge20', currentNode: 'bridge20', StripComponent: Lesson10ProgressionStrip,
+  title: 'Bridge 20 · X as a percentage of Y',
+  subtitle: 'Express one number as a percentage of another.',
+  intro: 'The flip-side of "X% of Y".  Now you know X and Y but not the percent — find it.   Formula: (part ÷ whole) × 100.',
+  teach: {
+    rule: ['Percent  =  (part ÷ whole) × 100.   Or: form the fraction ', { frac: ['part', 'whole'] }, ', then multiply by 100.   Both numbers must be in the SAME units before you divide.'],
+    example: {
+      setup: '15 as a percentage of 75',
+      steps: [
+        '15 ÷ 75 = 0.2.',
+        '0.2 × 100 = 20.',
+      ],
+      answer: '15 is 20% of 75.',
+    },
+  },
+  generator: generateBridge20Question,
+  nextHref: '/chapter5', nextLabel: 'On to Lesson 10',
+})
+
 function Chapter5App({ onBack }) {
   const [progress, setProgress] = useState(ch5_loadProgress)
   const [activeId, setActiveId] = useState(null)
@@ -8242,6 +8317,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
         {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
         {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
+        {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
         <h2 style={{ marginBottom: 4 }}>{ch5RenderMath(lesson.title)}</h2>
         <h3 style={{ color: 'var(--clr-accent, #6cf)', marginTop: 16 }}>{lesson.teach.heading}</h3>
         {lesson.teach.body.map((para, i) => (
@@ -8281,6 +8357,7 @@ function Chapter5App({ onBack }) {
         {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
         {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
         {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
+        {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
         <h2>🎉 Lesson complete</h2>
         <p>You finished <strong>{ch5RenderMath(lesson.title)}</strong>.</p>
         {next ? (
@@ -8322,6 +8399,7 @@ function Chapter5App({ onBack }) {
       {activeId === 'L7' && <Lesson7ProgressionStrip current="lesson7" />}
       {activeId === 'L8' && <Lesson8ProgressionStrip current="lesson8" />}
       {activeId === 'L9' && <Lesson9ProgressionStrip current="lesson9" />}
+      {activeId === 'L10' && <Lesson10ProgressionStrip current="lesson10" />}
       <h3 style={{ marginBottom: 8 }}>{ch5RenderMath(lesson.title)}</h3>
       {/* Question slider — drag to jump to any question in the play sequence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
@@ -35038,6 +35116,7 @@ function App() {
   if (pathname === '/bridge17') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge17App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge18') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge18App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
   if (pathname === '/bridge19') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge19App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
+  if (pathname === '/bridge20') return (<><button className="theme-toggle" onClick={toggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button><div className="app-shell"><div className="card"><AuthGate><Bridge20App onBack={() => { window.location.href = '/chapter5' }} /></AuthGate></div></div></>)
 
   // Route: /chapter1 → Cambridge IGCSE Chapter 1 (Reviewing Number Concepts)
   if (pathname === '/chapter1') {
