@@ -28,8 +28,8 @@ import './App.css'
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
 // App version — increment with each commit
-const TENALI_VERSION = '1.0.85'
-const TENALI_BUILD_DATE = '2026-05-03 18:18 IST'
+const TENALI_VERSION = '1.0.86'
+const TENALI_BUILD_DATE = '2026-05-03 18:28 IST'
 
 // ─── Auth helpers ───────────────────────────────────────────────────────────
 // Tiny pub/sub on top of localStorage so AuthMenu and AuthGate stay in sync.
