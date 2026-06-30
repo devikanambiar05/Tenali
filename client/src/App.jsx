@@ -74,6 +74,7 @@ import VisualMathLabRedux, {
 import CoordinateGrid from './components/CoordinateGrid';
 import LanguageDashboard from './language/LanguageDashboard'
 import { VOCAB_CORPUS } from './vocabCorpus'
+import PercentExplanationApp from './PercentExplanationApp'
 
 // API base URL from environment variables (Vite)
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -43901,7 +43902,7 @@ function App() {
     indices: IndicesApp,           // Indices (laws of exponents)
     sequences: SequencesApp,       // Sequences & Series
     ratio: RatioApp,               // Ratio & Proportion
-    percent: PercentApp,           // Percentages
+    percent: (props) => <PercentExplanationApp {...props} PercentApp={PercentApp} />,           // Percentages
     sets: SetsApp,                 // Sets & Venn diagrams
     trig: TrigApp,                 // Trigonometry
     ineq: IneqApp,                 // Inequalities
