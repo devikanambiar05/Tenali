@@ -44140,7 +44140,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
     if (finished) {
       const pass = score / totalQ >= 0.8
       if (pass && markTopicCompleted) {
-        markTopicCompleted('fraction')
+        markTopicCompleted('fractionadd')
       }
     }
   }, [finished])
@@ -44402,7 +44402,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
         </div>
         <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        {completedTopics.includes('fraction') && (
+        {completedTopics.includes('fractionadd') && (
           <div className="transfer-cta-box" style={{ marginTop: '20px', padding: '16px', background: 'var(--clr-hover, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--clr-border)', textAlign: 'center' }}>
             <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--clr-text-soft)', lineHeight: '1.4' }}>
               🎉 You have completed Stage 3 Practice for this topic!
@@ -44410,7 +44410,7 @@ function FractionAddApp({ onBack, completedTopics = [], goldMastery = [], markTo
             <button 
               className="btn-transfer-cta" 
               onClick={() => {
-                if (setTransferTopic) setTransferTopic('fraction')
+                if (setTransferTopic) setTransferTopic('fractionadd')
                 if (setMode) setMode('transfer')
               }}
               style={{ width: '100%', padding: '10px', background: 'linear-gradient(135deg, #FFD700, #FFA500)', color: '#000', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}

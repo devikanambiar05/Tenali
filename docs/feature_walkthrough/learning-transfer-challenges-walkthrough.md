@@ -114,7 +114,7 @@ graph TD
 3. Click the **⚙️ Toggle Stage 3 Mastery** button. 
 4. Type **`percent`** in the prompt box and click OK. The page reloads, and the Percentages game card displays a green checkmark (**✅**).
 5. Click **⚙️ Toggle Stage 3 Mastery** again, type **`ratio`**, and click OK.
-6. Click **⚙️ Toggle Stage 3 Mastery** again, type **`fraction`**, and click OK.
+6. Click **⚙️ Toggle Stage 3 Mastery** again, type **`fractionadd`**, and click OK.
 7. Open the **Percentages**, **Ratio & Proportion**, or **Fractions** game card. The **🚀 Start Transfer Challenge (Stage 4) 🥇** button will be visible instantly.
 
 #### Scenario C: Verifying the Transfer Challenge Interface & Hint Mechanics
