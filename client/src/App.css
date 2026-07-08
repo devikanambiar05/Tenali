@@ -618,6 +618,111 @@ button:disabled {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* GLOSSARY - Feature AQ: Tap-to-Define Word Glossary       */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.glossary-term-wrapper {
+  /* Positioning context for the absolute popover */
+  position: relative;
+  display: inline;
+}
+
+.glossary-term {
+  /* Tappable term — dashed underline, NOT hyperlink-style */
+  cursor: pointer;
+  border-bottom: 1.5px dashed var(--clr-text-soft);  /* Muted underline — not accent blue */
+  border-radius: 2px;
+  padding: 0 1px 1px;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  /* Accessible focus ring */
+  outline: none;
+}
+
+.glossary-term:hover,
+.glossary-term:focus-visible {
+  background: var(--clr-accent-soft);
+  border-bottom-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+
+.glossary-term--open {
+  background: var(--clr-accent-soft);
+  border-bottom-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+
+.glossary-term-icon {
+  /* Small book emoji — superscript, subtle */
+  font-size: 0.6em;
+  margin-left: 2px;
+  vertical-align: super;
+  opacity: 0.65;
+  user-select: none;
+}
+
+.glossary-popover {
+  /* Inline definition card, absolutely positioned below the term */
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--clr-card);
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  box-shadow: var(--shadow-card);
+  width: min(240px, 80vw);
+  z-index: 200;  /* Above quiz content, below any full-screen modals */
+  /* Subtle left-accent strip using the term color */
+  border-left: 3px solid var(--clr-accent);
+  /* Fade + slide in */
+  animation: glossary-appear 0.13s ease;
+  /* Allow text selection inside popover */
+  user-select: text;
+  /* Ensure popover text doesn't inherit the term's styles */
+  color: var(--clr-text);
+  font-size: 1rem;
+  font-weight: 400;
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+.glossary-popover-term {
+  /* Term name — bold, accent colored */
+  display: block;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--clr-accent);
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+}
+
+.glossary-popover-def {
+  /* Definition — plain, readable */
+  display: block;
+  font-size: 0.85rem;
+  color: var(--clr-text);
+  line-height: 1.55;
+}
+
+@keyframes glossary-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /* ANSWER INPUT - Text entry field for short answers */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 

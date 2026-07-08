@@ -23,6 +23,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react'
 import './App.css'
+import GlossaryText from './components/GlossaryText'
 
 // API base URL from environment variables (Vite)
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -36487,7 +36488,7 @@ function GKApp({ onBack }) {
       </div>}
       {started && !finished && <>
         <div className="progress-pill center">Question {questionNumber}/{totalQ}</div>
-        <div className="question-box">{loading || !question ? 'Loading question…' : question.question}</div>
+        <div className="question-box">{loading || !question ? 'Loading question…' : <GlossaryText text={question.question} />}</div>
         {question && (
           <div className="options-list">
             {question.options.map((option, idx) => {
@@ -38957,7 +38958,7 @@ function VocabApp({ onBack }) {
           {isAdaptive && <div className="progress-pill" style={{ background: ADAPT_COLORS[curAdaptLevel], color: '#fff' }}>{ADAPT_LABELS[curAdaptLevel]}</div>}
         </div>
         {isAdaptive && <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />}
-        <div className="question-box vocab-word">{loading || !question ? 'Loading question…' : question.question}</div>
+        <div className="question-box vocab-word">{loading || !question ? 'Loading question…' : <GlossaryText text={question.question} />}</div>
         {question && (
           <div className="options-list">
             {question.options.map((option, idx) => {
@@ -39253,7 +39254,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
             {isAdaptive && <div className="progress-pill" style={{ background: ADAPT_COLORS[curAdaptLevel], color: '#fff' }}>{ADAPT_LABELS[curAdaptLevel]}</div>}
           </div>
           {question && <div style={{ textAlign: 'center' }}>
-            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}>{question.prompt}</div>
+            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}><GlossaryText text={question.prompt} /></div>
             <div className="options-grid" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '40px' }}>
               {question.options.map(opt => {
                 const isSelected = selectedOption === opt.option
@@ -39494,7 +39495,7 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
             <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />
           )}
           {question && <div style={{ textAlign: 'center' }}>
-            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
+            <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}><GlossaryText text={question.prompt} /></div>
             <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder={getPlaceholder()} onKeyDown={handleKeyDown} autoFocus />
           </div>}
           {!question && loading && <div style={{ textAlign: 'center', padding: '24px', color: 'var(--clr-text-soft)' }}>Loading question…</div>}
@@ -39853,7 +39854,7 @@ function DotProdApp({ onBack }) {
     }
 
     // Fallback
-    return <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
+    return <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}><GlossaryText text={question.prompt} /></div>
   }
 
   return (
@@ -40797,7 +40798,7 @@ function GymApp({ onBack }) {
           {GYM_PUZZLE_TYPES.map(renderMasteryRow)}
         </div>
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}>{question.prompt}</div>
+          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '8px 0 4px', lineHeight: '1.4' }}><GlossaryText text={question.prompt} /></div>
           <div className="options-grid" style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: '12px', marginTop: '40px' }}>
             {question.options.map(opt => {
               const isSelected = selectedOption === opt.option
@@ -42314,7 +42315,7 @@ function RandomMixApp({ onBack }) {
       {!loading && question && (
         <>
           <div className="question-prompt" style={{ whiteSpace: 'pre-wrap', margin: '0.5rem 0 1rem', fontSize: '1.1rem', lineHeight: 1.5 }}>
-            {getPromptForType(currentTopic.key, question) || question.prompt || ''}
+            <GlossaryText text={getPromptForType(currentTopic.key, question) || question.prompt || ''} />
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -42510,7 +42511,7 @@ function SetsApp({ onBack }) {
         </div>
         {isAdaptive && <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />}
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}>{question.prompt}</div>
+          <div className="question-prompt" style={{ fontSize: '1.3rem', margin: '20px 0', lineHeight: '1.6' }}><GlossaryText text={question.prompt} /></div>
           <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder={question.type === 'list' ? 'e.g. {1, 3, 5} or empty' : 'e.g. 12'} onKeyDown={handleKeyDown} autoFocus />
         </div>}
         {renderFeedback(feedback, isCorrect)}
@@ -42663,7 +42664,7 @@ function SequencesApp({ onBack }) {
         </div>
         {isAdaptive && <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />}
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}>{question.prompt}</div>
+          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}><GlossaryText text={question.prompt} /></div>
           <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder="e.g. 42 or 3/4" onKeyDown={handleKeyDown} autoFocus />
         </div>}
         {renderFeedback(feedback, isCorrect)}
@@ -42832,7 +42833,7 @@ function RatioApp({ onBack }) {
         </div>
         {isAdaptive && <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />}
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}>{question.prompt}</div>
+          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}><GlossaryText text={question.prompt} /></div>
           <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder={placeholders[isAdaptive ? adaptiveLevel(adaptScore) : difficulty] || 'Type your answer'} onKeyDown={handleKeyDown} autoFocus />
         </div>}
         {renderFeedback(feedback, isCorrect)}
@@ -43000,7 +43001,7 @@ function PercentApp({ onBack }) {
         </div>
         {isAdaptive && <DifficultySlider pct={adaptivePct(adaptScore)} onChange={(p) => { const v = (p / 100) * 3; setAdaptScore(v); adaptScoreRef.current = v }} />}
         {question && <div style={{ textAlign: 'center' }}>
-          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}>{question.prompt}</div>
+          <div className="question-prompt" style={{ fontSize: '1.4rem', margin: '20px 0' }}><GlossaryText text={question.prompt} /></div>
           <input className="answer-input" type="text" value={answer} onChange={e => { if (!revealed) setAnswer(e.target.value) }} disabled={revealed} placeholder="Type your answer" onKeyDown={handleKeyDown} autoFocus />
         </div>}
         {renderFeedback(feedback, isCorrect)}
