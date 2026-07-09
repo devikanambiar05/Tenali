@@ -35951,6 +35951,18 @@ function App() {
     )
   }
 
+  // Route: /vachana → Vachana Mathematical Literacy Lab
+  if (pathname === '/vachana') {
+    return (
+      <>
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <AuthGate><VachanaApp onBack={() => { window.location.href = '/' }} /></AuthGate>
+      </>
+    )
+  }
+
   // Route: /supertables → 10-level progressive multiplication mastery
   if (pathname === '/supertables') {
     return (
@@ -35966,6 +35978,7 @@ function App() {
   // ========== ROUTING: MODE-BASED (HOME MENU + QUIZZES) ==========
   // Map quiz mode keys to their component classes
   const modeMap = {
+    vachana: VachanaApp,          // Vachana Mathematical Literacy Lab
     gk: GKApp,                    // General Knowledge
     addition: AdditionApp,         // Basic addition
     quadratic: QuadraticApp,       // Quadratic substitution
@@ -36084,6 +36097,7 @@ function Home({ onSelect }) {
     { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
     { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
     { key: 'gym', name: 'Gym', subtitle: 'Adaptive workout across all 7 gym puzzles', color: 'featured' },
+    { key: 'vachana', name: 'Vachana', subtitle: 'Mathematical Literacy Lab', color: 'featured' },
   ]
 
   // All regular quiz apps sorted alphabetically by name
@@ -49544,8 +49558,1135 @@ function TatsavitLineApp({ onBack }) {
   )
 }
 
+// ─── Vachana Icons (SVG-based) ────────────────────────────────────────────────
+
+const VachanaIcons = {
+  vocab: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  ),
+  dissector: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="6" cy="6" r="3" />
+      <circle cx="6" cy="18" r="3" />
+      <line x1="9.8" y1="8.2" x2="21" y2="19" />
+      <line x1="9.8" y1="15.8" x2="21" y2="5" />
+    </svg>
+  ),
+  trans: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <polyline points="16 3 21 8 16 13" />
+      <line x1="21" y1="8" x2="9" y2="8" />
+      <polyline points="8 21 3 16 8 11" />
+      <line x1="3" y1="16" x2="15" y2="16" />
+    </svg>
+  ),
+  order: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  ),
+  story: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <line x1="10" y1="6" x2="21" y2="6" />
+      <line x1="10" y1="12" x2="21" y2="12" />
+      <line x1="10" y1="18" x2="21" y2="18" />
+      <path d="M4 6h1v4" />
+      <path d="M4 10h2" />
+      <path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+    </svg>
+  ),
+  graph: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  ),
+  read: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
+  pronoun: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  noise: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </svg>
+  ),
+  traps: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+  jumbled: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M21 16V8a2 2 0 0 0-2-2h-6M3 8v8a2 2 0 0 0 2 2h6" />
+      <polyline points="10 14 13 17 10 20" />
+      <polyline points="14 10 11 7 14 4" />
+    </svg>
+  ),
+  paraphrase: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
+  modifiers: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+    </svg>
+  ),
+  header: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--clr-accent)' }}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M9 10h6" />
+      <path d="M9 14h4" />
+    </svg>
+  )
+};
+
+function VachanaApp({ onBack }) {
+  const [activeTab, setActiveTab] = useState('vocab');
+
+  // List of Vachana exercises
+  const tabs = [
+    { id: 'vocab', label: 'Vocab Explorer', icon: VachanaIcons.vocab, desc: 'Build meaning for mathematical words' },
+    { id: 'dissector', label: 'Sentence Dissector', icon: VachanaIcons.dissector, desc: 'Parse math sentences into components' },
+    { id: 'trans', label: 'Translate English ➔ Math', icon: VachanaIcons.trans, desc: 'Convert words into algebraic expressions' },
+    { id: 'order', label: 'Inversion Detector', icon: VachanaIcons.order, desc: 'Avoid subtraction order errors' },
+    { id: 'story', label: 'Story Weaver', icon: VachanaIcons.story, desc: 'Arrange sentences in logical order' },
+    { id: 'graph', label: 'Dependency Graph', icon: VachanaIcons.graph, desc: 'Visualize prerequisite terminology' },
+    { id: 'read', label: 'Readability Analyzer', icon: VachanaIcons.read, desc: 'Calculate reading ease and grade levels' },
+    { id: 'pronoun', label: 'Pronoun Resolver', icon: VachanaIcons.pronoun, desc: 'Identify subjects and references' },
+    { id: 'noise', label: 'Noise Filter', icon: VachanaIcons.noise, desc: 'Separate critical data from text fluff' },
+    { id: 'traps', label: 'Reading Traps', icon: VachanaIcons.traps, desc: 'Learn to avoid linguistic math traps' },
+    { id: 'jumbled', label: 'Jumbled Words', icon: VachanaIcons.jumbled, desc: 'Arrange words to match equations' },
+    { id: 'paraphrase', label: 'Paraphrase Matcher', icon: VachanaIcons.paraphrase, desc: 'Identify equivalent verbal representations' },
+    { id: 'modifiers', label: 'Logical Modifiers', icon: VachanaIcons.modifiers, desc: 'Practice precise math prepositions' }
+  ];
+
+  // --- 1. Vocab Explorer Data & State ---
+  const vocabData = {
+    factor: {
+      term: 'Factor',
+      everyday: 'A circumstance, fact, or influence that contributes to a result.',
+      math: 'A whole number that divides another whole number exactly, leaving zero remainder.',
+      examples: 'The factors of 12 are 1, 2, 3, 4, 6, and 12, because each divides 12 evenly (e.g., 12 ÷ 3 = 4).',
+      misconception: 'Often confused with "multiple". A factor is smaller than or equal to the target number, while a multiple is larger than or equal to it.',
+      related: ['multiple', 'divisor', 'coefficient']
+    },
+    multiple: {
+      term: 'Multiple',
+      everyday: 'Consisting of or involving many parts or elements.',
+      math: 'The product of a given number and any integer.',
+      examples: 'The multiples of 4 are 4, 8, 12, 16, 20... because 4 × 1 = 4, 4 × 2 = 8, etc.',
+      misconception: 'Confused with "factor". Remember, multiples grow outwards (multiplication), while factors divide inwards.',
+      related: ['factor', 'product']
+    },
+    coefficient: {
+      term: 'Coefficient',
+      everyday: 'A joint agent or helper in producing an effect.',
+      math: 'A numerical or constant quantity placed before and multiplying a variable in an algebraic expression.',
+      examples: 'In the term 5x, 5 is the coefficient of x. In -3y², -3 is the coefficient.',
+      misconception: 'Students often forget the sign. In the expression 7 - 2x, the coefficient of x is -2, not 2.',
+      related: ['variable', 'constant', 'term']
+    },
+    difference: {
+      term: 'Difference',
+      everyday: 'A point or way in which people or things are not the same.',
+      math: 'The result of subtracting one number from another.',
+      examples: 'The difference between 10 and 3 is 7 (10 − 3 = 7).',
+      misconception: 'Order matters in algebraic subtraction. "The difference between x and 5" is represented as |x − 5|, but in simple translation it is written as x − 5.',
+      related: ['sum', 'product', 'quotient']
+    },
+    respectively: {
+      term: 'Respectively',
+      everyday: 'In the order given or mentioned.',
+      math: 'A logic word establishing a 1-to-1 ordered mapping between two lists.',
+      examples: 'If "A and B have $10 and $20, respectively", it means A has $10 and B has $20.',
+      misconception: 'Ignoring the mapping sequence. If respectively is omitted, the assignment of values is ambiguous.',
+      related: ['each', 'equal']
+    }
+  };
+  const [selectedTerm, setSelectedTerm] = useState('factor');
+
+  // --- 2. Sentence Dissector State ---
+  const dissectorSentence = [
+    { text: 'Rahul', type: 'subject' },
+    { text: 'has', type: 'verb' },
+    { text: 'seven', type: 'quantity' },
+    { text: 'more apples than', type: 'relationship' },
+    { text: 'Riya', type: 'target' }
+  ];
+  const [dissectorAnswers, setDissectorAnswers] = useState({});
+  const [activeWordIdx, setActiveWordIdx] = useState(null);
+  const [dissectorMsg, setDissectorMsg] = useState('');
+
+  const handleDissectClassify = (category) => {
+    if (activeWordIdx === null) return;
+    const word = dissectorSentence[activeWordIdx];
+    const isCorrect = word.type === category;
+    
+    setDissectorAnswers(prev => ({
+      ...prev,
+      [activeWordIdx]: { category, isCorrect }
+    }));
+    
+    if (isCorrect) {
+      setDissectorMsg(`✅ Correct! "${word.text}" is indeed the ${category.toUpperCase()}.`);
+    } else {
+      setDissectorMsg(`❌ Not quite. "${word.text}" is not the ${category.toUpperCase()}. Try again!`);
+    }
+    setActiveWordIdx(null);
+  };
+
+  // --- 3. Translate English to Math State ---
+  const [assembledTokens, setAssembledTokens] = useState([]);
+  const [transMsg, setTransMsg] = useState('');
+  const availableTokens = ['x', '+', '1', '2', '(', 'x+1', ')', 'x+2', '=', '48', '3', '*', '15'];
+  const correctTrans = 'x+(x+1)+(x+2)=48';
+
+  const checkTranslation = () => {
+    const code = assembledTokens.join('');
+    // Normalise spaces
+    const cleanCode = code.replace(/\s+/g, '');
+    if (cleanCode === correctTrans || cleanCode === 'x+x+1+x+2=48' || cleanCode === '3x+3=48') {
+      setTransMsg('✅ Correct translation! x + (x+1) + (x+2) = 48 captures the consecutive sum.');
+    } else {
+      setTransMsg('❌ That algebraic expression does not match the sentence structure. Try again!');
+    }
+  };
+
+  // --- 4. Subtraction Order Detector State ---
+  const [subInput, setSubInput] = useState('');
+  const [subMsg, setSubMsg] = useState('');
+
+  const checkSubOrder = () => {
+    const val = subInput.replace(/\s+/g, '').toLowerCase();
+    if (val === 'y-10=30') {
+      setSubMsg('✅ Correct! "10 less than y" correctly puts y first: y − 10 = 30.');
+    } else if (val === '10-y=30') {
+      setSubMsg('❌ Warning: In English, "10 less than y" means you start with y and subtract 10. What you wrote (10 − y) means "y less than 10". Correct expression: y − 10 = 30.');
+    } else {
+      setSubMsg('❌ Incorrect. Try translating: Start with y, subtract 10, make it equal to 30.');
+    }
+  };
+
+  // --- 5. Story Weaver State ---
+  const originalStory = [
+    { id: 0, text: 'A farmer walked into his orchard to inspect the crops.', order: 0 },
+    { id: 1, text: 'He noticed that the leaves on three orange trees had turned yellow.', order: 1 },
+    { id: 2, text: 'The soil beneath those yellow trees was bone dry.', order: 2 },
+    { id: 3, text: 'He set up a drip line to supply exactly 4 liters of water per hour to that section.', order: 3 },
+    { id: 4, text: 'By the next week, the yellow leaves had greened, and the crop was saved.', order: 4 }
+  ];
+  // Scrambled initial state
+  const [storyCards, setStoryCards] = useState([
+    originalStory[4],
+    originalStory[1],
+    originalStory[3],
+    originalStory[0],
+    originalStory[2]
+  ]);
+  const [storyMsg, setStoryMsg] = useState('');
+
+  const moveStoryCard = (index, direction) => {
+    const nextCards = [...storyCards];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= nextCards.length) return;
+    // Swap
+    const temp = nextCards[index];
+    nextCards[index] = nextCards[targetIdx];
+    nextCards[targetIdx] = temp;
+    setStoryCards(nextCards);
+  };
+
+  const checkStoryOrder = () => {
+    const isCorrect = storyCards.every((card, idx) => card.order === idx);
+    if (isCorrect) {
+      setStoryMsg('✅ Perfect! The narrative flow is logical: Setup ➔ Problem ➔ Clue ➔ Solution ➔ Result.');
+    } else {
+      setStoryMsg('❌ The sequence is out of order. Make sure you set up the problem before presenting the solution!');
+    }
+  };
+
+  // --- 6. Dependency Graph State ---
+  const [graphNode, setGraphNode] = useState('ratio');
+  const graphNodes = {
+    integer: { label: 'Integer', reqs: [], desc: 'Whole positive or negative numbers.' },
+    division: { label: 'Division', reqs: ['integer'], desc: 'Splitting into equal parts.' },
+    fraction: { label: 'Fraction', reqs: ['division'], desc: 'Part of a whole number represented as a/b.' },
+    ratio: { label: 'Ratio', reqs: ['fraction'], desc: 'Linguistic comparison of two quantities.' },
+    proportion: { label: 'Proportion', reqs: ['ratio'], desc: 'Equation showing two ratios are equal.' },
+    percent: { label: 'Percentage', reqs: ['ratio', 'fraction'], desc: 'A ratio whose denominator is always 100.' }
+  };
+
+  // --- 7. Readability Analyzer State ---
+  const [readText, setReadText] = useState('A train leaves the station traveling at sixty kilometers per hour. A second train leaves four hours later from the same platform in the same direction, traveling at ninety kilometers per hour. How long will it take for the second train to overtake the first train?');
+  const [readMetrics, setReadMetrics] = useState({ ease: 0, grade: 0, words: 0, sentences: 0, syllables: 0 });
+
+  useEffect(() => {
+    if (!readText.trim()) return;
+    const wordsArr = readText.trim().split(/\s+/).filter(w => w.length > 0);
+    const words = wordsArr.length;
+    const sentences = readText.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
+    
+    // Estimate syllables
+    let syllables = 0;
+    wordsArr.forEach(w => {
+      let word = w.toLowerCase().replace(/[^a-z]/g, '');
+      if (word.length <= 3) { syllables += 1; return; }
+      word = word.replace(/(?:es|ed|e)$/, '');
+      word = word.replace(/^y/, '');
+      const vowels = word.match(/[aeiouy]{1,2}/g);
+      syllables += vowels ? vowels.length : 1;
+    });
+
+    const asl = words / sentences;
+    const asw = syllables / words;
+    const ease = 206.835 - (1.015 * asl) - (84.6 * asw);
+    const grade = (0.39 * asl) + (11.8 * asw) - 15.59;
+
+    setReadMetrics({
+      words,
+      sentences,
+      syllables,
+      ease: Math.round(ease * 10) / 10,
+      grade: Math.round(grade * 10) / 10
+    });
+  }, [readText]);
+
+  // --- 8. Pronoun Resolver State ---
+  const [pronounAnswer, setPronounAnswer] = useState(null);
+  const [pronounMsg, setPronounMsg] = useState('');
+
+  const checkPronoun = (ans) => {
+    setPronounAnswer(ans);
+    if (ans === 'Ravi') {
+      setPronounMsg('✅ Correct! "He" in the third sentence refers back to Ravi, who did the buying and sharing.');
+    } else {
+      setPronounMsg('❌ Incorrect. Remember, "He then lost one" refers to the person who originally bought the books.');
+    }
+  };
+
+  // --- 9. Noise Filter State ---
+  const noiseTokens = [
+    { text: 'A red train', isNoise: true },
+    { text: 'with 4 blue stripes', isNoise: true },
+    { text: 'carries 120 passengers', isNoise: true },
+    { text: 'at a speed of', isNoise: false },
+    { text: '60 km/h.', isNoise: false },
+    { text: 'How far', isNoise: false },
+    { text: 'does it travel in', isNoise: false },
+    { text: '3 hours?', isNoise: false }
+  ];
+  const [noiseStatus, setNoiseStatus] = useState({});
+  const [noiseMsg, setNoiseMsg] = useState('');
+
+  const toggleNoise = (idx, classification) => {
+    setNoiseStatus(prev => ({
+      ...prev,
+      [idx]: classification
+    }));
+  };
+
+  const checkNoiseFilter = () => {
+    let correct = true;
+    noiseTokens.forEach((tok, idx) => {
+      const selection = noiseStatus[idx] || 'relevant';
+      const expected = tok.isNoise ? 'noise' : 'relevant';
+      if (selection !== expected) correct = false;
+    });
+
+    if (correct) {
+      setNoiseMsg('✅ Perfect! You successfully identified the speed (60 km/h) and time (3 hours) as relevant, and filtered out the train color, stripes, and passenger counts as logical noise.');
+    } else {
+      setNoiseMsg('❌ Mismatches found. Verify if passenger count or train styling are necessary to solve a distance problem!');
+    }
+  };
+
+  // --- 10. Reading Traps State ---
+  const traps = [
+    {
+      title: 'The 6S = P Equation Trap',
+      concept: 'Phrases like "6 times as many students as professors" lead students to write 6S = P. But substituting S = 12 gives 72 = P, meaning 72 professors! The correct relation is S = 6P.',
+      quiz: 'For 3 times as many apples (A) as bananas (B), what is the correct relation?',
+      options: ['3A = B', 'A = 3B'],
+      correct: 'A = 3B'
+    },
+    {
+      title: 'The Inclusive vs. Exclusive Boundary Trap',
+      concept: 'Numbers from 10 to 20 "inclusive" contains 11 numbers (20 − 10 + 1). "Exclusive" contains only 9 numbers (20 − 10 − 1).',
+      quiz: 'How many integers are between 15 and 25, inclusive?',
+      options: ['10', '11'],
+      correct: '11'
+    }
+  ];
+  const [trapIdx, setTrapIdx] = useState(0);
+  const [trapAns, setTrapAns] = useState(null);
+  const [trapMsg, setTrapMsg] = useState('');
+
+  const checkTrapAns = (ans) => {
+    setTrapAns(ans);
+    if (ans === traps[trapIdx].correct) {
+      setTrapMsg('✅ Correct! You avoided the reading trap.');
+    } else {
+      setTrapMsg('❌ Not quite. Analyze the relation or boundary offset again.');
+    }
+  };
+
+  // --- 11. Jumbled Word Equations State ---
+  const initialJumbled = ['adding', 'three times', 'y', 'four to', 'the sum of'];
+  const correctJumbledOrder = [1, 4, 0, 3, 2]; // three times the sum of adding four to y
+  const [jumbledBlocks, setJumbledBlocks] = useState([
+    'y', 'adding', 'the sum of', 'three times', 'four to'
+  ]);
+  const [jumbledMsg, setJumbledMsg] = useState('');
+
+  const moveJumbledBlock = (index, direction) => {
+    const nextBlocks = [...jumbledBlocks];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= nextBlocks.length) return;
+    const temp = nextBlocks[index];
+    nextBlocks[index] = nextBlocks[targetIdx];
+    nextBlocks[targetIdx] = temp;
+    setJumbledBlocks(nextBlocks);
+  };
+
+  const checkJumbledOrder = () => {
+    const blockString = jumbledBlocks.join(' ');
+    const targetString = 'three times the sum of adding four to y';
+    if (blockString === targetString) {
+      setJumbledMsg('✅ Correct! The phrase correctly mirrors the algebraic expression 3(y + 4).');
+    } else {
+      setJumbledMsg('❌ Wrong phrasing order. Remember: multiply the overall sum, so state "three times" before the sum description.');
+    }
+  };
+
+  // --- 12. Paraphrase Matcher State ---
+  const [paraSelected, setParaSelected] = useState(null);
+  const [paraMsg, setParaMsg] = useState('');
+  const paraOptions = [
+    { text: 'y is four less than three times x', correct: true },
+    { text: 'y is three times four less than x', correct: false },
+    { text: 'y is four minus three times x', correct: false }
+  ];
+
+  const checkPara = (opt) => {
+    setParaSelected(opt.text);
+    if (opt.correct) {
+      setParaMsg('✅ Correct! "Four less than" translates to subtracting 4 from the term 3x: y = 3x − 4.');
+    } else {
+      setParaMsg('❌ Incorrect. Remember: "Four less than" implies subtraction is written at the end.');
+    }
+  };
+
+  // --- 13. Logical Modifiers cloze State ---
+  const [modifierAnswers, setModifierAnswers] = useState({ q1: '', q2: '' });
+  const [modifierMsg, setModifierMsg] = useState('');
+
+  const checkModifiers = () => {
+    if (modifierAnswers.q1 === 'respectively' && modifierAnswers.q2 === 'inclusive') {
+      setModifierMsg('✅ Correct! "respectively" maps $15 to A and $30 to B in order; "inclusive" counts both boundary values.');
+    } else {
+      setModifierMsg('❌ Some answers are incorrect. Review the mapping order or range definition.');
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1rem', color: 'var(--clr-text)' }}>
+      {/* Vachana Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '12px' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {VachanaIcons.header} Vachana Literary Lab
+          </h1>
+          <p className="subtitle" style={{ margin: '4px 0 0 0' }}>Learn to parse, translate, and communicate in the language of mathematics</p>
+        </div>
+        <button className="back-button" onClick={onBack}>← Back to Home</button>
+      </div>
+
+      {/* Main Grid Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+        {/* Sidebar tabs */}
+        <div style={{ background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <h4 style={{ margin: '0 0 10px 6px', textTransform: 'uppercase', fontSize: '0.78rem', color: 'var(--clr-text-soft)', letterSpacing: '0.8px' }}>Exercises</h4>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                // Clear active feedback/states
+                setDissectorAnswers({});
+                setDissectorMsg('');
+                setTransMsg('');
+                setSubMsg('');
+                setStoryMsg('');
+                setNoiseMsg('');
+                setTrapMsg('');
+                setJumbledMsg('');
+                setParaMsg('');
+                setModifierMsg('');
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                textAlign: 'left',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: activeTab === tab.id ? 600 : 500,
+                background: activeTab === tab.id ? 'var(--clr-accent-bg, rgba(108,206,255,0.15))' : 'transparent',
+                color: activeTab === tab.id ? 'var(--clr-accent, #6cf)' : 'var(--clr-text)',
+                transition: 'background 0.15s, color 0.15s'
+              }}
+              onMouseEnter={e => { if (activeTab !== tab.id) e.target.style.background = 'var(--clr-hover-strong)' }}
+              onMouseLeave={e => { if (activeTab !== tab.id) e.target.style.background = 'transparent' }}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Workspace Card */}
+        <div style={{ background: 'var(--clr-card, #1e1e24)', border: '1px solid var(--clr-border)', borderRadius: '16px', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
+          {/* Active Tab Info */}
+          <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '16px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.4rem', color: 'var(--clr-accent)' }}>
+              {tabs.find(t => t.id === activeTab).label}
+            </h2>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
+              {tabs.find(t => t.id === activeTab).desc}
+            </p>
+          </div>
+
+          {/* Tab Workspaces */}
+
+          {/* 1. VOCAB EXPLORER */}
+          {activeTab === 'vocab' && (
+            <div>
+              <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: 600 }}>Select a math term:</span>
+                <select
+                  value={selectedTerm}
+                  onChange={e => setSelectedTerm(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-surface)', color: 'inherit', fontSize: '0.95rem' }}
+                >
+                  {Object.keys(vocabData).map(key => (
+                    <option key={key} value={key}>{vocabData[key].term}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--clr-accent)', textTransform: 'uppercase', marginBottom: '2px' }}>Everyday Meaning</strong>
+                  <span style={{ fontSize: '0.98rem' }}>"{vocabData[selectedTerm].everyday}"</span>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--clr-correct, #2ea043)', textTransform: 'uppercase', marginBottom: '2px' }}>Mathematical Meaning</strong>
+                  <span style={{ fontSize: '1rem', fontWeight: 500 }}>{vocabData[selectedTerm].math}</span>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.8rem', color: 'var(--clr-text-soft)', textTransform: 'uppercase', marginBottom: '2px' }}>Visual Examples</strong>
+                  <span style={{ fontSize: '0.95rem', fontStyle: 'italic' }}>{vocabData[selectedTerm].examples}</span>
+                </div>
+                <div style={{ borderTop: '1px dashed var(--clr-border)', paddingTop: '10px' }}>
+                  <strong style={{ display: 'block', fontSize: '0.8rem', color: 'red', textTransform: 'uppercase', marginBottom: '2px' }}>Common Misconception</strong>
+                  <span style={{ fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>{vocabData[selectedTerm].misconception}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid var(--clr-border)', paddingTop: '12px' }}>
+                  <span style={{ fontSize: '0.88rem', color: 'var(--clr-text-soft)' }}>Related terms:</span>
+                  {vocabData[selectedTerm].related.map(rel => (
+                    <button
+                      key={rel}
+                      onClick={() => { if (vocabData[rel]) setSelectedTerm(rel) }}
+                      className="quiz-pill"
+                      style={{ padding: '4px 10px', fontSize: '0.8rem', background: 'var(--clr-hover-strong)', borderRadius: '6px', border: 'none', color: 'var(--clr-accent)', cursor: 'pointer' }}
+                    >
+                      {rel}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. SENTENCE DISSECTOR */}
+          {activeTab === 'dissector' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>Click on a word in the sentence below, then select its mathematical role to dissect its logical structure.</p>
+              
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', padding: '16px', background: 'var(--clr-surface)', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                {dissectorSentence.map((word, idx) => {
+                  const ans = dissectorAnswers[idx];
+                  let border = '1px solid var(--clr-border)';
+                  let bg = 'transparent';
+                  if (idx === activeWordIdx) {
+                    border = '1px solid var(--clr-accent)';
+                    bg = 'var(--clr-accent-bg, rgba(108,206,255,0.12))';
+                  } else if (ans) {
+                    border = ans.isCorrect ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red';
+                    bg = ans.isCorrect ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)';
+                  }
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => { setActiveWordIdx(idx); setDissectorMsg(''); }}
+                      style={{
+                        padding: '8px 14px', borderRadius: '8px', border, background: bg,
+                        color: 'inherit', cursor: 'pointer', fontSize: '1rem', transition: 'all 0.15s'
+                      }}
+                    >
+                      {word.text}
+                      {ans && <span style={{ marginLeft: '6px', fontSize: '0.8rem' }}>{ans.isCorrect ? '✓' : '✗'}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {activeWordIdx !== null && (
+                <div style={{ background: 'var(--clr-surface)', padding: '14px', borderRadius: '10px', border: '1px solid var(--clr-border)', marginBottom: '14px' }}>
+                  <p style={{ margin: '0 0 10px 0', fontSize: '0.9rem' }}>Classify the term <strong>"{dissectorSentence[activeWordIdx].text}"</strong>:</p>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {['subject', 'verb', 'quantity', 'relationship', 'target'].map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => handleDissectClassify(cat)}
+                        className="submit-btn"
+                        style={{ padding: '6px 12px', fontSize: '0.85rem', textTransform: 'capitalize' }}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {dissectorMsg && (
+                <div style={{ fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {dissectorMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. TRANSLATE ENGLISH TO MATH */}
+          {activeTab === 'trans' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Sentence: <strong>"The sum of three consecutive integers is forty-eight."</strong>
+              </p>
+              
+              <div style={{ minHeight: '50px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: '12px', padding: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                {assembledTokens.length === 0 ? (
+                  <span style={{ color: 'var(--clr-text-soft)', fontSize: '0.9rem' }}>Click blocks below to build the equation here...</span>
+                ) : (
+                  assembledTokens.map((tok, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setAssembledTokens(prev => prev.filter((_, i) => i !== idx));
+                        setTransMsg('');
+                      }}
+                      className="quiz-pill"
+                      style={{ padding: '6px 12px', fontSize: '1rem', cursor: 'pointer', background: 'var(--clr-hover-strong)', border: '1px solid var(--clr-accent)', color: 'var(--clr-accent)' }}
+                    >
+                      {tok}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {availableTokens.map((tok, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setAssembledTokens(prev => [...prev, tok]);
+                      setTransMsg('');
+                    }}
+                    style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-surface)', color: 'inherit', cursor: 'pointer', fontSize: '0.95rem' }}
+                  >
+                    {tok}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="submit-btn" onClick={checkTranslation}>Check Equation</button>
+                <button
+                  onClick={() => { setAssembledTokens([]); setTransMsg(''); }}
+                  style={{ background: 'transparent', border: '1px solid var(--clr-border)', color: 'var(--clr-text-soft)', cursor: 'pointer', padding: '8px 14px', borderRadius: '8px' }}
+                >
+                  Clear Workspace
+                </button>
+              </div>
+
+              {transMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {transMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 4. INVERSION DETECTOR */}
+          {activeTab === 'order' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Translate the sentence: <strong>"10 less than a number y is equal to 30"</strong>
+              </p>
+              
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <input
+                  className="search-bar"
+                  style={{ maxWidth: '300px' }}
+                  type="text"
+                  placeholder="Type equation, e.g., y - 10 = 30"
+                  value={subInput}
+                  onChange={e => { setSubInput(e.target.value); setSubMsg(''); }}
+                />
+                <button className="submit-btn" onClick={checkSubOrder}>Validate</button>
+              </div>
+
+              {subMsg && (
+                <div style={{
+                  fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: subMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: subMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {subMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5. STORY WEAVER */}
+          {activeTab === 'story' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>Rearrange the sentences below so that they construct a logically ordered word problem.</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {storyCards.map((card, idx) => (
+                  <div
+                    key={card.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px 16px', background: 'var(--clr-surface)',
+                      border: '1px solid var(--clr-border)', borderRadius: '10px'
+                    }}
+                  >
+                    <span style={{ fontWeight: 700, opacity: 0.6, fontSize: '0.9rem' }}>#{idx + 1}</span>
+                    <span style={{ fontSize: '0.95rem', flex: 1 }}>{card.text}</span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={() => moveStoryCard(idx, -1)}
+                        disabled={idx === 0}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveStoryCard(idx, 1)}
+                        disabled={idx === storyCards.length - 1}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === storyCards.length - 1 ? 0.3 : 1 }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="submit-btn" onClick={checkStoryOrder}>Verify Story Sequence</button>
+
+              {storyMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {storyMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 6. DEPENDENCY GRAPH */}
+          {activeTab === 'graph' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '16px' }}>Concepts build on top of each other. Click terms in the prerequisite chain to see how vocabulary structures math learning.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', marginBottom: '20px' }}>
+                {Object.keys(graphNodes).map(key => (
+                  <button
+                    key={key}
+                    onClick={() => setGraphNode(key)}
+                    style={{
+                      padding: '12px 10px', borderRadius: '10px',
+                      border: graphNode === key ? '2px solid var(--clr-accent)' : '1px solid var(--clr-border)',
+                      background: graphNode === key ? 'var(--clr-accent-bg, rgba(108,206,255,0.1))' : 'var(--clr-surface)',
+                      color: graphNode === key ? 'var(--clr-accent)' : 'inherit',
+                      cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s'
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem', display: 'block' }}>{graphNodes[key].label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)' }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', color: 'var(--clr-accent)' }}>{graphNodes[graphNode].label}</h3>
+                <p style={{ margin: '0 0 12px 0', fontSize: '0.95rem' }}>{graphNodes[graphNode].desc}</p>
+                
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--clr-text-soft)' }}>Prerequisites:</span>
+                  {graphNodes[graphNode].reqs.length === 0 ? (
+                    <span style={{ fontSize: '0.85rem', fontStyle: 'italic', color: 'var(--clr-text-soft)' }}>None (Foundational)</span>
+                  ) : (
+                    graphNodes[graphNode].reqs.map(req => (
+                      <button
+                        key={req}
+                        onClick={() => setGraphNode(req)}
+                        className="quiz-pill"
+                        style={{ padding: '4px 10px', fontSize: '0.8rem', background: 'var(--clr-hover-strong)', borderRadius: '6px', border: 'none', color: 'var(--clr-accent)', cursor: 'pointer' }}
+                      >
+                        {graphNodes[req].label}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 7. READABILITY ANALYZER */}
+          {activeTab === 'read' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '10px' }}>Paste a word problem or paragraph below to calculate its reading difficulty and grade level in real-time.</p>
+              
+              <textarea
+                className="search-bar"
+                style={{ width: '100%', minHeight: '100px', padding: '12px', borderRadius: '10px', border: '1px solid var(--clr-border)', background: 'var(--clr-surface)', color: 'inherit', fontFamily: 'inherit', fontSize: '0.95rem', lineHeight: '1.45', marginBottom: '16px', resize: 'vertical' }}
+                value={readText}
+                onChange={e => setReadText(e.target.value)}
+              />
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                <div style={{ background: 'var(--clr-surface)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--clr-border)' }}>
+                  <strong style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)' }}>Words</strong>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700 }}>{readMetrics.words}</span>
+                </div>
+                <div style={{ background: 'var(--clr-surface)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--clr-border)' }}>
+                  <strong style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)' }}>Sentences</strong>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700 }}>{readMetrics.sentences}</span>
+                </div>
+                <div style={{ background: 'var(--clr-surface)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--clr-border)' }}>
+                  <strong style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)' }}>Syllables</strong>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700 }}>{readMetrics.syllables}</span>
+                </div>
+                <div style={{ background: 'var(--clr-surface)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--clr-border)', cursor: 'help' }} title="Flesch Reading Ease: 90-100 (Very Easy), 60-70 (Standard), 0-30 (Very Difficult)">
+                  <strong style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-accent)' }}>Flesch Ease</strong>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700 }}>{readMetrics.ease}</span>
+                </div>
+                <div style={{ background: 'var(--clr-surface)', padding: '10px', borderRadius: '8px', textAlign: 'center', border: '1px solid var(--clr-border)' }} title="Estimated School Grade Level required to understand">
+                  <strong style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-correct, #2ea043)' }}>F-K Grade</strong>
+                  <span style={{ fontSize: '1.4rem', fontWeight: 700 }}>{readMetrics.grade}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 8. PRONOUN RESOLVER */}
+          {activeTab === 'pronoun' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Text: <em>"Ravi bought 3 books. He gave them to Amit. <strong>He</strong> then lost one."</em>
+              </p>
+              
+              <p style={{ fontSize: '0.95rem', marginBottom: '16px' }}>
+                Who does the bolded word <strong>"He"</strong> in the third sentence refer to?
+              </p>
+
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                {['Ravi', 'Amit', 'The books'].map(ans => (
+                  <button
+                    key={ans}
+                    onClick={() => checkPronoun(ans)}
+                    className="submit-btn"
+                    style={{
+                      padding: '8px 16px',
+                      background: pronounAnswer === ans ? 'var(--clr-accent)' : 'transparent',
+                      border: '1px solid var(--clr-accent)',
+                      color: pronounAnswer === ans ? '#fff' : 'var(--clr-accent)'
+                    }}
+                  >
+                    {ans}
+                  </button>
+                ))}
+              </div>
+
+              {pronounMsg && (
+                <div style={{
+                  fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: pronounMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: pronounMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {pronounMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 9. NOISE FILTER */}
+          {activeTab === 'noise' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '10px' }}>A train travel speed problem: Click on the phrase cards below to toggle them between <strong>Relevant</strong> (normal) and <strong>Noise</strong> (dimmed out).</p>
+              
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px', background: 'var(--clr-surface)', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                {noiseTokens.map((tok, idx) => {
+                  const state = noiseStatus[idx] || 'relevant';
+                  const opacity = state === 'noise' ? 0.35 : 1;
+                  const border = state === 'noise' ? '1px dashed red' : '1px solid var(--clr-correct, #2ea043)';
+                  const textDecor = state === 'noise' ? 'line-through' : 'none';
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => toggleNoise(idx, state === 'relevant' ? 'noise' : 'relevant')}
+                      style={{
+                        padding: '6px 12px', borderRadius: '6px', border, opacity, textDecoration: textDecor,
+                        background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: '0.95rem'
+                      }}
+                    >
+                      {tok.text}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button className="submit-btn" onClick={checkNoiseFilter}>Verify Filter</button>
+
+              {noiseMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {noiseMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 10. READING TRAPS */}
+          {activeTab === 'traps' && (
+            <div>
+              <div style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                <h3 style={{ margin: '0 0 6px 0', fontSize: '1.15rem', color: 'var(--clr-accent)' }}>{traps[trapIdx].title}</h3>
+                <p style={{ margin: '0 0 12px 0', fontSize: '0.95rem', lineHeight: '1.5' }}>{traps[trapIdx].concept}</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    disabled={trapIdx === 0}
+                    onClick={() => { setTrapIdx(0); setTrapAns(null); setTrapMsg(''); }}
+                    style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: trapIdx === 0 ? 0.4 : 1 }}
+                  >
+                    ◀ Previous Trap
+                  </button>
+                  <button
+                    disabled={trapIdx === traps.length - 1}
+                    onClick={() => { setTrapIdx(1); setTrapAns(null); setTrapMsg(''); }}
+                    style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: trapIdx === traps.length - 1 ? 0.4 : 1 }}
+                  >
+                    Next Trap ▶
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.95rem', fontWeight: 600 }}>{traps[trapIdx].quiz}</p>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  {traps[trapIdx].options.map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => checkTrapAns(opt)}
+                      className="submit-btn"
+                      style={{
+                        padding: '6px 14px',
+                        background: trapAns === opt ? 'var(--clr-accent)' : 'transparent',
+                        border: '1px solid var(--clr-accent)',
+                        color: trapAns === opt ? '#fff' : 'var(--clr-accent)'
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {trapMsg && <span style={{ fontSize: '0.9rem', color: trapMsg.startsWith('✅') ? 'var(--clr-correct)' : 'red' }}>{trapMsg}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* 11. JUMBLED WORD EQUATIONS */}
+          {activeTab === 'jumbled' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Arrange the jumbled blocks below to construct the correct verbal phrase for the math expression: <strong style={{ color: 'var(--clr-accent)', fontSize: '1.1rem' }}>3(y + 4)</strong>.
+              </p>
+              
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px', background: 'var(--clr-surface)', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                {jumbledBlocks.map((block, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 12px', background: 'var(--clr-card)',
+                      border: '1px solid var(--clr-border)', borderRadius: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.95rem' }}>{block}</span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button
+                        onClick={() => moveJumbledBlock(idx, -1)}
+                        disabled={idx === 0}
+                        style={{ padding: '2px 5px', fontSize: '0.7rem', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}
+                      >
+                        ◀
+                      </button>
+                      <button
+                        onClick={() => moveJumbledBlock(idx, 1)}
+                        disabled={idx === jumbledBlocks.length - 1}
+                        style={{ padding: '2px 5px', fontSize: '0.7rem', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === jumbledBlocks.length - 1 ? 0.3 : 1 }}
+                      >
+                        ▶
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="submit-btn" onClick={checkJumbledOrder}>Check Word Order</button>
+
+              {jumbledMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {jumbledMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 12. PARAPHRASE MATCHER */}
+          {activeTab === 'paraphrase' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Identify the correct verbal translation for the math equation: <strong style={{ color: 'var(--clr-accent)', fontSize: '1.1rem' }}>y = 3x − 4</strong>.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {paraOptions.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => checkPara(opt)}
+                    className="submit-btn"
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 16px',
+                      background: paraSelected === opt.text ? 'var(--clr-accent)' : 'transparent',
+                      border: '1px solid var(--clr-accent)',
+                      color: paraSelected === opt.text ? '#fff' : 'var(--clr-accent)'
+                    }}
+                  >
+                    {opt.text}
+                  </button>
+                ))}
+              </div>
+
+              {paraMsg && (
+                <div style={{
+                  fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: paraMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: paraMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {paraMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 13. LOGICAL MODIFIERS DRILL */}
+          {activeTab === 'modifiers' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '16px' }}>Fill in the blanks with the correct logical modifiers to make the sentence mathematically clear.</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '20px', lineHeight: '1.6' }}>
+                <div>
+                  <span>1. Rahul and Amit have $15 and $30, </span>
+                  <select
+                    value={modifierAnswers.q1}
+                    onChange={e => { setModifierAnswers(prev => ({ ...prev, q1: e.target.value })); setModifierMsg(''); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--clr-border)', background: 'var(--clr-card)', color: 'inherit' }}
+                  >
+                    <option value="">--select--</option>
+                    <option value="each">each</option>
+                    <option value="respectively">respectively</option>
+                    <option value="equal">equally</option>
+                  </select>
+                  <span>.</span>
+                </div>
+                <div>
+                  <span>2. Sum all integers from 1 to 10, </span>
+                  <select
+                    value={modifierAnswers.q2}
+                    onChange={e => { setModifierAnswers(prev => ({ ...prev, q2: e.target.value })); setModifierMsg(''); }}
+                    style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--clr-border)', background: 'var(--clr-card)', color: 'inherit' }}
+                  >
+                    <option value="">--select--</option>
+                    <option value="exclusive">exclusive</option>
+                    <option value="inclusive">inclusive</option>
+                  </select>
+                  <span>. (Expected result is 55).</span>
+                </div>
+              </div>
+
+              <button className="submit-btn" onClick={checkModifiers}>Submit Grammar Check</button>
+
+              {modifierMsg && (
+                <div style={{
+                  marginTop: '14px', fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: modifierMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: modifierMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {modifierMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * QuizLayout Component
+
  * Wrapper layout for quiz apps (PolyFactorApp, PrimeFactorApp, QFormulaApp, etc.)
  * Provides consistent header with back button and title section
  * All quiz content is rendered via children prop
