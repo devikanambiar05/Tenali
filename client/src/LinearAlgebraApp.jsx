@@ -478,6 +478,7 @@ const MISSIONS = [
 /* ── GeoGebra embed component ──────────────────────── */
 function GGBEmbed({ missionId, ggbType }) {
   const [ggbFailed, setGgbFailed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const wrapRef = useRef(null);
   const readyRef = useRef(false);
 
@@ -522,15 +523,20 @@ function GGBEmbed({ missionId, ggbType }) {
 
     const timer = setTimeout(tryInject, 400);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [missionId]);
+  }, [missionId, fullscreen]);
 
   return (
-    <div className="la-ggb-wrap" ref={wrapRef}>
-      {ggbFailed && (
-        <div className="fallback-message">
-          <p>GeoGebra could not load. Try refreshing or work on paper!</p>
-        </div>
-      )}
+    <div className={'la-ggb-outer' + (fullscreen ? ' fullscreen' : '')}>
+      <div className="la-ggb-wrap" ref={wrapRef}>
+        {ggbFailed && (
+          <div className="fallback-message">
+            <p>GeoGebra could not load. Try refreshing or work on paper!</p>
+          </div>
+        )}
+      </div>
+      <button className="la-ggb-fullscreen-btn" onClick={() => setFullscreen(v => !v)} title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+        {fullscreen ? '✕' : '⛶'}
+      </button>
     </div>
   );
 }
@@ -553,6 +559,12 @@ function parseLinearParams(story) {
   if (pat7) return { m: +pat7[1], b: +pat7[2] };
   const pat8 = story.match(/=\s*(\d+(?:\.\d+)?)\s*\+\s*(\d+(?:\.\d+)?)\s*[a-z]/i);
   if (pat8) return { m: +pat8[2], b: +pat8[1] };
+  const pat9 = story.match(/=-\s*(\d+(?:\.\d+)?)\s*[a-z]\s*\+\s*(\d+(?:\.\d+)?)/i);
+  if (pat9) return { m: -(+pat9[1]), b: +pat9[2] };
+  const pat10 = story.match(/=\s*(\d+(?:\.\d+)?)\s*[a-z](?:\s*[\.\s,;)])/i);
+  if (pat10) return { m: +pat10[1], b: 0 };
+  const pat11 = story.match(/=\s*(\d+(?:\.\d+)?)\s*x(?!\s*[\+\-])/i);
+  if (pat11) return { m: +pat11[1], b: 0 };
   return null;
 }
 
