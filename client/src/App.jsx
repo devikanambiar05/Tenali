@@ -35489,6 +35489,8 @@ function TenthApp({ onBack }) {
 function App() {
   // Currently selected quiz mode (null = home menu, or key like 'gk', 'addition', etc.)
   const [mode, setMode] = useState(null)
+  // Tracks if the active practice session should show the Goal Selector UI
+  const [isGoalMode, setIsGoalMode] = useState(false)
 
   // Current theme: 'dark' or 'light'
   // Initialized from localStorage with fallback to 'dark'
@@ -36078,7 +36080,7 @@ function App() {
   }
 
   // Get the component to render (or null if mode not set)
-  const ActiveApp = mode ? modeMap[mode] : null
+  const ActiveApp = mode && mode !== 'goalpractice' ? modeMap[mode] : null
 
   return (
     <div className="app-shell">
@@ -36087,11 +36089,46 @@ function App() {
       </button>
       <div className="card">
         {!mode ? (
-          <Home onSelect={setMode} />
+          <Home onSelect={(key) => {
+            if (key === 'goalpractice') {
+              setMode('goalpractice');
+            } else {
+              setMode(key);
+              setIsGoalMode(false);
+            }
+          }} />
+        ) : mode === 'goalpractice' ? (
+          <Home
+            isGoalSelection={true}
+            onBack={() => {
+              setMode(null);
+              setIsGoalMode(false);
+            }}
+            onSelect={(key) => {
+              setMode(key);
+              setIsGoalMode(true);
+            }}
+          />
         ) : ActiveApp ? (
-          <ActiveApp onBack={() => setMode(null)} />
+          <ActiveApp
+            onBack={() => {
+              if (isGoalMode) {
+                setMode('goalpractice');
+              } else {
+                setMode(null);
+              }
+            }}
+            isGoalMode={isGoalMode}
+          />
         ) : (
-          <Home onSelect={setMode} />
+          <Home onSelect={(key) => {
+            if (key === 'goalpractice') {
+              setMode('goalpractice');
+            } else {
+              setMode(key);
+              setIsGoalMode(false);
+            }
+          }} />
         )}
       </div>
     </div>
@@ -36106,8 +36143,8 @@ function App() {
  * @param {Object} props
  * @param {Function} props.onSelect - Callback when user selects a quiz: receives mode key (e.g., 'gk')
  */
-function Home({ onSelect }) {
-  // Special featured apps (shown in highlighted first row)
+function Home({ onSelect, isGoalSelection = false, onBack }) {
+  // Special featured apps (shown in highlighted first row / hamburger menu)
   const featuredApps = [
     { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
     { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
@@ -36217,9 +36254,19 @@ function Home({ onSelect }) {
   // Filtered lists
   const isSearching = search.trim() !== ''
   const matchFilter = (a) => a.name.toLowerCase().includes(search.toLowerCase()) || a.subtitle.toLowerCase().includes(search.toLowerCase())
+  
+  // Under Goal Practice mode, we include Random Mix & Custom Lesson at the top of the grid list (omitting Gym since it does not support goals)
+  const goalFeatured = [
+    { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'featured' },
+    { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'featured' },
+  ]
+  
+  const filteredGoalFeatured = isSearching ? goalFeatured.filter(matchFilter) : goalFeatured
   const filteredFeatured = isSearching ? featuredApps.filter(matchFilter) : featuredApps
   const filteredRegular = isSearching ? regularApps.filter(matchFilter) : regularApps
-  const apps = isSearching ? allApps.filter(matchFilter) : allApps
+  
+  // Decide which items to show on the main grid list
+  const displayGridApps = filteredRegular
 
   // Grid layout tracking (for responsive display)
   const gridRef = useRef(null)
@@ -36240,47 +36287,74 @@ function Home({ onSelect }) {
   }, [])
 
   // Calculate number of rows for display (for grid dimension label at bottom)
-  const rows = Math.ceil(apps.length / (cols || 1))
+  const rows = Math.ceil(displayGridApps.length / (cols || 1))
 
   return (
     <>
       <div style={{ position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '4px' }}>
+        {isGoalSelection && onBack && (
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '8px', left: '0', display: 'flex', alignItems: 'center', gap: '6px',
+            background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)', color: 'var(--clr-text)',
+            padding: '6px 12px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+            fontSize: '0.85rem', fontWeight: '500', transition: 'all var(--transition)'
+          }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+             onMouseLeave={e => e.target.style.background = 'var(--clr-card)'}>
+            ← Back to Dashboard
+          </button>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '4px', paddingTop: isGoalSelection ? '44px' : '0' }}>
           <img src="/tenali.png" alt="Tenali Raman" style={{ width: '80px', height: 'auto', flexShrink: 0 }} />
           <div>
-            <h1 style={{ margin: 0 }}>Tenali</h1>
-            <p className="subtitle" style={{ margin: 0 }}>Choose a learning game to begin</p>
+            <h1 style={{ margin: 0 }}>{isGoalSelection ? 'Goal Practice' : 'Tenali'}</h1>
+            <p className="subtitle" style={{ margin: 0 }}>
+              {isGoalSelection ? 'Select a topic to practice with custom goals' : 'Choose a learning game to begin'}
+            </p>
           </div>
         </div>
-        {/* Hamburger menu — top right */}
-        <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
-          <button onClick={() => setMenuOpen(o => !o)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-            display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
-          }} aria-label="Menu">
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
-            <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
-          </button>
-          {menuOpen && <div style={{
-            position: 'absolute', top: '100%', right: 0, zIndex: 50,
-            background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
-            borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
-            padding: '6px 0', minWidth: '200px', overflow: 'hidden'
-          }}>
-            {featuredApps.map(app => (
-              <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
+        {/* Hamburger menu — top right — hidden in goal selection screen */}
+        {!isGoalSelection && (
+          <div ref={menuRef} style={{ position: 'absolute', top: '8px', right: '0' }}>
+            <button onClick={() => setMenuOpen(o => !o)} style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
+              display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center'
+            }} aria-label="Menu">
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(45deg) translate(4.5px, 4.5px)' : 'none' }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'opacity 0.2s', opacity: menuOpen ? 0 : 1 }} />
+              <span style={{ display: 'block', width: '22px', height: '2.5px', background: 'var(--clr-text)', borderRadius: '2px', transition: 'transform 0.2s, opacity 0.2s', transform: menuOpen ? 'rotate(-45deg) translate(4.5px, -4.5px)' : 'none' }} />
+            </button>
+            {menuOpen && <div style={{
+              position: 'absolute', top: '100%', right: 0, zIndex: 50,
+              background: 'var(--clr-card)', border: '1.5px solid var(--clr-border)',
+              borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
+              padding: '6px 0', minWidth: '200px', overflow: 'hidden'
+            }}>
+              {/* Standalone Goal-Based Practice navigation item at the top of menu */}
+              <button onClick={() => { setMenuOpen(false); onSelect('goalpractice') }} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
                 background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
                 fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
               }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
                  onMouseLeave={e => e.target.style.background = 'none'}>
-                <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
+                <strong style={{ color: 'var(--clr-accent)' }}>🎯 Goal Practice</strong>
+                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Practice with targets & limits</span>
               </button>
-            ))}
-          </div>}
-        </div>
+              <div style={{ height: '1px', background: 'var(--clr-border)', margin: '4px 0' }} />
+              
+              {featuredApps.map(app => (
+                <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+                  fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+                }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+                   onMouseLeave={e => e.target.style.background = 'none'}>
+                  <strong style={{ color: 'var(--clr-accent)' }}>{app.name}</strong>
+                  <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
+                </button>
+              ))}
+            </div>}
+          </div>
+        )}
       </div>
       <div className="search-bar-row">
         <input
@@ -36292,7 +36366,7 @@ function Home({ onSelect }) {
         />
       </div>
       <div className="menu-grid" ref={gridRef}>
-        {filteredRegular.map((app) => (
+        {displayGridApps.map((app) => (
           <button key={app.key} className={`menu-card ${app.color}`} onClick={() => onSelect(app.key)}>
             <span className="menu-title">{app.name}</span>
             <span className="menu-subtitle">{app.subtitle}</span>
@@ -36313,7 +36387,7 @@ function Home({ onSelect }) {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function GKApp({ onBack }) {
+function GKApp({ onBack, isGoalMode = false }) {
   // Current question object: {id, question, options: [A, B, C, D], ...}
   const [question, setQuestion] = useState(null)
   // User's selected option: 'A', 'B', 'C', or 'D'
@@ -36346,6 +36420,11 @@ function GKApp({ onBack }) {
   // Quiz finished flag
   const [finished, setFinished] = useState(false)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer for tracking response time per question
   const timer = useTimer()
 
@@ -36529,43 +36608,47 @@ const loadQuestion = async (excludeIds) => {
       {!started && !finished && <div className="welcome-box">
         <p className="welcome-text">Test your general knowledge with random questions!</p>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="gkapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="gkapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -36615,7 +36698,7 @@ const loadQuestion = async (excludeIds) => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function AdditionApp({ onBack }) {
+function AdditionApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy' (1-digit), 'medium' (2-digit), 'hard' (3-digit), 'extrahard' (4-digit)
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -36650,6 +36733,11 @@ function AdditionApp({ onBack }) {
   // Results array for display
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer for response timing
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -36852,44 +36940,48 @@ const fetchQuestion = async (selectedDifficulty = difficulty) => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="additionapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="additionapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
@@ -37820,7 +37912,7 @@ function GymQuiz({ title, subtitle, typeKeys, welcomeText, algebraInput, onBack 
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function BasicArithApp({ onBack }) {
+function BasicArithApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy', 'medium', 'hard', 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -37855,6 +37947,11 @@ function BasicArithApp({ onBack }) {
   // Results array
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -38047,44 +38144,48 @@ const fetchQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="basicarithapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="basicarithapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -38130,7 +38231,7 @@ const fetchQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function QuadraticApp({ onBack }) {
+function QuadraticApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy', 'medium', 'hard', 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -38165,6 +38266,11 @@ function QuadraticApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking time spent per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -38361,44 +38467,48 @@ const fetchQuestion = async (selectedDifficulty = difficulty) => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="quadraticapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="quadraticapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
@@ -38570,7 +38680,7 @@ function buildExtensionBatch(sourceTables, count) {
   return pool.slice(0, count)
 }
 
-function MultiplyApp({ onBack }) {
+function MultiplyApp({ onBack, isGoalMode = false }) {
   // --- Persistent state ---
   const [stats, setStats] = useState(() => loadMultStats())
   // --- Phase: 'picker' (level chooser) | 'level2-setup' (weak-table picker) |
@@ -38603,6 +38713,11 @@ function MultiplyApp({ onBack }) {
   const [fastestTime, setFastestTime] = useState(null)
   const [l3TimeRemaining, setL3TimeRemaining] = useState(MULT_LEVEL3_TIMEOUT_SECONDS)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const l3TimerRef = useRef(null)
   const l3DeadlineRef = useRef(0)
   const timer = useTimer()
@@ -38863,28 +38978,32 @@ function MultiplyApp({ onBack }) {
         <div className="welcome-box">
           <p className="welcome-text">Choose your level</p>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="multiplyapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="multiplyapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+        </>
+      )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '12px 0' }}>
             <button onClick={startLevel1}>
               Level 1 — Guided Random Practice
@@ -39011,7 +39130,7 @@ function MultiplyApp({ onBack }) {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function VocabApp({ onBack }) {
+function VocabApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy' | 'medium' | 'hard' | 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -39051,6 +39170,11 @@ function VocabApp({ onBack }) {
   const saveVocabSeen = (ids) => { try { localStorage.setItem(VOCAB_SEEN_KEY, JSON.stringify(ids)) } catch {} }
   const [seenIds, setSeenIds] = useState(loadVocabSeen)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking time spent per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -39270,44 +39394,48 @@ const loadQuestion = async (excludeIds) => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="vocabapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="vocabapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
@@ -39410,7 +39538,7 @@ const GYM_OPTION_LABEL = { A: '1', B: '2', C: '3', D: '4' }
  * question as a 4-button options grid instead of a free-form text input.
  */
 function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly }) {
-  return function GeneratedMCQuizApp({ onBack }) {
+  return function GeneratedMCQuizApp({ onBack, isGoalMode = false }) {
     const diffs = Object.keys(diffLabels)
     const [difficulty, setDifficulty] = useState(diffs[0])
     // When adaptiveOnly is set (used by all gym puzzles), the difficulty
@@ -39431,6 +39559,11 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
     const [loadError, setLoadError] = useState('')
     const [revealed, setRevealed] = useState(false)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
     const [results, setResults] = useState([])
     const [correctOption, setCorrectOption] = useState('')
     const timer = useTimer()
@@ -39609,7 +39742,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
           {tip && <p style={{ fontSize: '0.85rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>{tip}</p>}
           {/* Difficulty selector — hidden entirely for adaptive-only puzzles
               (the gym puzzles), which always run in adaptive mode. */}
-          {!adaptiveOnly && (
+          {!adaptiveOnly && isGoalMode && (
             <div className="checkbox-group" style={{ marginBottom: '12px' }}>
               {diffs.map(d => (
                 <label key={d} className={`checkbox-pill${!isAdaptive && difficulty === d ? ' active' : ''}`}>
@@ -39726,7 +39859,7 @@ function makeMCQuizApp({ title, subtitle, apiPath, diffLabels, tip, adaptiveOnly
 }
 
 function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, answerField }) {
-  return function GeneratedQuizApp({ onBack }) {
+  return function GeneratedQuizApp({ onBack, isGoalMode = false }) {
     const diffs = Object.keys(diffLabels)
     const [difficulty, setDifficulty] = useState(diffs[0])
     const [isAdaptive, setIsAdaptive] = useState(false)
@@ -39746,6 +39879,11 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
     const [loadError, setLoadError] = useState('')
     const [revealed, setRevealed] = useState(false)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
     const [results, setResults] = useState([])
     const timer = useTimer()
     const advanceFnRef = useRef(null)
@@ -39932,41 +40070,45 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
           {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>
             Starts easy and smoothly adjusts to your level as you answer.
           </p>}
-          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-          <div className="checkbox-group" style={{ marginBottom: '8px' }}>
-            {[
-              { key: 'standard', label: 'Standard' },
-              { key: 'speed',    label: '⚡ Speed Run' },
-              { key: 'perfect',  label: '🎯 Perfect Solve' },
-              { key: 'revision', label: '🔄 Revision' },
-            ].map(g => (
-              <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-                style={sessionGoal === g.key ? (
-                  g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
-                  g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
-                  g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-                ) : {}}>
-                <input type="radio" name={`${apiPath}-goal`} checked={sessionGoal === g.key}
-                  onChange={() => setSessionGoal(g.key)} />
-                {g.label}
-              </label>
-            ))}
-          </div>
-          {sessionGoal === 'speed' && (
-            <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-              ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-            </p>
-          )}
-          {sessionGoal === 'perfect' && (
-            <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-              🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-            </p>
-          )}
-          {sessionGoal === 'revision' && (
-            <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-              🔄 Focuses on topics you previously answered incorrectly.
-            </p>
-          )}
+          {isGoalMode && (
+          <>
+            <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                      <div className="checkbox-group" style={{ marginBottom: '8px' }}>
+                        {[
+                          { key: 'standard', label: 'Standard' },
+                          { key: 'speed',    label: '⚡ Speed Run' },
+                          { key: 'perfect',  label: '🎯 Perfect Solve' },
+                          { key: 'revision', label: '🔄 Revision' },
+                        ].map(g => (
+                          <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                            style={sessionGoal === g.key ? (
+                              g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
+                              g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
+                              g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                            ) : {}}>
+                            <input type="radio" name={`${apiPath}-goal`} checked={sessionGoal === g.key}
+                              onChange={() => setSessionGoal(g.key)} />
+                            {g.label}
+                          </label>
+                        ))}
+                      </div>
+                      {sessionGoal === 'speed' && (
+                        <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                          ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                        </p>
+                      )}
+                      {sessionGoal === 'perfect' && (
+                        <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                          🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                        </p>
+                      )}
+                      {sessionGoal === 'revision' && (
+                        <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                          🔄 Focuses on topics you previously answered incorrectly.
+                        </p>
+                      )}
+          </>
+        )}
           <div className="question-count-row">
             <label className="question-count-label">How many questions?</label>
             <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -40114,6 +40256,11 @@ function DotProdApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const submittedRef = useRef(false)
@@ -42073,7 +42220,7 @@ function TatsavitApp({ onBack }) {
 
 /* ── Squaring App ──────────────────────────────────── */
 // (a+b)² = a² + 2ab + b²  — student fills all four boxes
-function SquaringApp({ onBack }) {
+function SquaringApp({ onBack, isGoalMode = false }) {
   const DIFFS = ['easy', 'medium', 'hard', 'extrahard']
   const DIFF_LABELS_SQ = { easy: 'Easy — 11-19', medium: 'Medium — 20-49', hard: 'Hard — 50-99', extrahard: 'Extra Hard — 100-999' }
 
@@ -42104,6 +42251,11 @@ function SquaringApp({ onBack }) {
   const [val2AB, setVal2AB] = useState('')
   const [valFinal, setValFinal] = useState('')
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const refASq = useRef(null)
   const refBSq = useRef(null)
   const ref2AB = useRef(null)
@@ -42263,44 +42415,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="squaringapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="squaringapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -42588,7 +42744,7 @@ const DIFF_LEVELS = ['easy', 'medium', 'hard', 'extrahard']
 const DIFF_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard', extrahard: 'Extra Hard' }
 const DIFF_COLORS = { easy: '#4caf50', medium: '#ff9800', hard: '#f44336', extrahard: '#9c27b0' }
 
-function RandomMixApp({ onBack }) {
+function RandomMixApp({ onBack, isGoalMode = false }) {
   const [phase, setPhase] = useState('setup') // setup | playing | finished
   const [skippedTopics, setSkippedTopics] = useState(new Set())
   const [topicDiffMap, setTopicDiffMap] = useState({}) // { topicKey: diffIndex (0-3) }
@@ -42606,6 +42762,11 @@ function RandomMixApp({ onBack }) {
   const [totalQuestions, setTotalQuestions] = useState(20)
   const [numQInput, setNumQInput] = useState('20')
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const submittedRef = useRef(false)
@@ -42887,41 +43048,45 @@ function RandomMixApp({ onBack }) {
             <input className="answer-input question-count-input" type="text" value={numQInput} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQInput(v) }} />
           </div>
 
+          {isGoalMode && (
+        <>
           <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-          <div className="checkbox-group" style={{ marginBottom: '8px' }}>
-            {[
-              { key: 'standard', label: 'Standard' },
-              { key: 'speed',    label: '⚡ Speed Run' },
-              { key: 'perfect',  label: '🎯 Perfect Solve' },
-              { key: 'revision', label: '🔄 Revision' },
-            ].map(g => (
-              <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-                style={sessionGoal === g.key ? (
-                  g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
-                  g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
-                  g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-                ) : {}}>
-                <input type="radio" name="randommix-goal" checked={sessionGoal === g.key}
-                  onChange={() => setSessionGoal(g.key)} />
-                {g.label}
-              </label>
-            ))}
-          </div>
-          {sessionGoal === 'speed' && (
-            <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-              ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-            </p>
-          )}
-          {sessionGoal === 'perfect' && (
-            <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-              🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-            </p>
-          )}
-          {sessionGoal === 'revision' && (
-            <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-              🔄 Focuses on topics you previously answered incorrectly.
-            </p>
-          )}
+                    <div className="checkbox-group" style={{ marginBottom: '8px' }}>
+                      {[
+                        { key: 'standard', label: 'Standard' },
+                        { key: 'speed',    label: '⚡ Speed Run' },
+                        { key: 'perfect',  label: '🎯 Perfect Solve' },
+                        { key: 'revision', label: '🔄 Revision' },
+                      ].map(g => (
+                        <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                          style={sessionGoal === g.key ? (
+                            g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
+                            g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
+                            g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                          ) : {}}>
+                          <input type="radio" name="randommix-goal" checked={sessionGoal === g.key}
+                            onChange={() => setSessionGoal(g.key)} />
+                          {g.label}
+                        </label>
+                      ))}
+                    </div>
+                    {sessionGoal === 'speed' && (
+                      <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                        ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                      </p>
+                    )}
+                    {sessionGoal === 'perfect' && (
+                      <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                        🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                      </p>
+                    )}
+                    {sessionGoal === 'revision' && (
+                      <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                        🔄 Focuses on topics you previously answered incorrectly.
+                      </p>
+                    )}
+        </>
+      )}
 
           <p style={{ color: 'var(--clr-dim)', fontSize: '0.82rem', marginBottom: '1rem', marginTop: '12px' }}>
             Starts at <strong style={{ color: '#4caf50' }}>Easy</strong>.
@@ -43080,7 +43245,7 @@ function RandomMixApp({ onBack }) {
 }
 
 /* ── Sets App ───────────────────────────────────────── */
-function SetsApp({ onBack }) {
+function SetsApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -43099,6 +43264,11 @@ function SetsApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const advancedRef = useRef(false)
@@ -43231,44 +43401,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="setsapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="setsapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -43306,7 +43480,7 @@ const loadQuestion = async () => {
 }
 
 /* ── Sequences & Series App ─────────────────────────── */
-function SequencesApp({ onBack }) {
+function SequencesApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -43325,6 +43499,11 @@ function SequencesApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const advancedRef = useRef(false)
@@ -43449,44 +43628,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="sequencesapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="sequencesapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -43524,7 +43707,7 @@ const loadQuestion = async () => {
 }
 
 /* ── Ratio & Proportion App ────────────────────────── */
-function RatioApp({ onBack }) {
+function RatioApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -43543,6 +43726,11 @@ function RatioApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const advancedRef = useRef(false)
@@ -43683,44 +43871,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="ratioapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="ratioapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -43758,7 +43950,7 @@ const loadQuestion = async () => {
 }
 
 /* ── Percentages App ────────────────────────────────── */
-function PercentApp({ onBack }) {
+function PercentApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -43777,6 +43969,11 @@ function PercentApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
   const advancedRef = useRef(false)
@@ -43916,44 +44113,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="percentapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="percentapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -44002,7 +44203,7 @@ const loadQuestion = async () => {
  * For 'simplify' questions: user enters the resulting exponent (integer)
  * For 'evaluate' questions: user enters a number or fraction (e.g. "8", "1/4")
  */
-function IndicesApp({ onBack }) {
+function IndicesApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -44021,6 +44222,11 @@ function IndicesApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
 
@@ -44176,44 +44382,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="indicesapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="indicesapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -44283,7 +44493,7 @@ const loadQuestion = async () => {
  * User types answers using √ symbol (keyboard hint provided) or "sqrt".
  * Auto-advance on correct answers; Enter key advances after wrong answers.
  */
-function SurdsApp({ onBack }) {
+function SurdsApp({ onBack, isGoalMode = false }) {
   const [difficulty, setDifficulty] = useState('easy')
   const [isAdaptive, setIsAdaptive] = useState(false)
   const [adaptScore, setAdaptScore] = useState(0)
@@ -44302,6 +44512,11 @@ function SurdsApp({ onBack }) {
   const [revealed, setRevealed] = useState(false)
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const timer = useTimer()
   const advanceFnRef = useRef(null)
 
@@ -44491,44 +44706,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="surdsapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="surdsapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -44584,7 +44803,7 @@ const loadQuestion = async () => {
   )
 }
 
-function FractionAddApp({ onBack }) {
+function FractionAddApp({ onBack, isGoalMode = false }) {
   // ── State variables ──────────────────────────────────────────────────
   // Difficulty: 'easy' | 'medium' | 'hard' | 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
@@ -44616,6 +44835,11 @@ function FractionAddApp({ onBack }) {
   // Results log for ResultsTable
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer for per-question timing
   const timer = useTimer()
 
@@ -44872,44 +45096,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="fractionaddapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="fractionaddapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -45009,7 +45237,7 @@ const TWIN_SYMBOLS = [
   '⚽','🏀','🎾','🎯','🎲','🎸','🎨','📚','✏️','🔔',
 ]
 
-function TwinHuntApp({ onBack }) {
+function TwinHuntApp({ onBack, isGoalMode = false }) {
   // Number of symbols per panel (default 5, configurable 3-15)
   const [count, setCount] = useState('5')
   // Game started flag
@@ -45084,6 +45312,11 @@ function TwinHuntApp({ onBack }) {
   const [leftPositions, setLeftPositions] = useState([])
   const [rightPositions, setRightPositions] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
 
   /**
    * generateRound(n): Generate a new round with n symbols per panel
@@ -45227,43 +45460,47 @@ const generateRound = (n) => {
         <div className="welcome-box">
           <p className="welcome-text">Two panels, one match. Tap the common object!</p>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="twinhuntapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="twinhuntapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
           <div className="question-count-row">
             <label className="question-count-label">Objects per panel</label>
             <input className="answer-input question-count-input" type="text" value={count}
@@ -45351,7 +45588,7 @@ const generateRound = (n) => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function SqrtApp({ onBack }) {
+function SqrtApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy' (1-5), 'medium' (6-10), 'hard' (11-20), 'extrahard' (21-50)
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -45386,6 +45623,11 @@ function SqrtApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -45560,44 +45802,48 @@ const fetchQuestion = async (step) => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="sqrtapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="sqrtapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
@@ -45644,7 +45890,7 @@ const fetchQuestion = async (step) => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function PolyMulApp({ onBack }) {
+function PolyMulApp({ onBack, isGoalMode = false }) {
   // Difficulty level: 'easy' | 'medium' | 'hard' | 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
   // Adaptive mode enabled?
@@ -45679,6 +45925,11 @@ function PolyMulApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -45848,44 +46099,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="polymulapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="polymulapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -45946,7 +46201,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function PolyFactorApp({ onBack }) {
+function PolyFactorApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' | 'medium' | 'hard' | 'extrahard'
   const [difficulty, setDifficulty] = useState('easy')
@@ -45988,6 +46243,11 @@ function PolyFactorApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking elapsed time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -46152,44 +46412,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="polyfactorapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="polyfactorapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -46249,7 +46513,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function PrimeFactorApp({ onBack }) {
+function PrimeFactorApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' | 'medium' | 'hard' (affects size of numbers)
   const [difficulty, setDifficulty] = useState('easy')
@@ -46364,6 +46628,11 @@ const loadQuestion = async () => {
   // Shake + brief error message for invalid factor attempts
   const [inputError, setInputError] = useState('')
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const inputRef = useRef(null)
 
   const addFactor = () => {
@@ -46487,44 +46756,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="primefactorapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="primefactorapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -46579,7 +46852,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function QFormulaApp({ onBack }) {
+function QFormulaApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' | 'medium' | 'hard'
   const [difficulty, setDifficulty] = useState('easy')
@@ -46617,6 +46890,11 @@ function QFormulaApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking elapsed time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -46788,44 +47066,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="qformulaapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="qformulaapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -46889,7 +47171,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function SimulApp({ onBack }) {
+function SimulApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' (2×2) | 'hard' (3×3)
   const [difficulty, setDifficulty] = useState('easy')
@@ -46929,6 +47211,11 @@ function SimulApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking elapsed time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -47118,44 +47405,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="simulapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="simulapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -47213,7 +47504,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function FuncEvalApp({ onBack }) {
+function FuncEvalApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' | 'medium' | 'hard' (number of variables)
   const [difficulty, setDifficulty] = useState('easy')
@@ -47249,6 +47540,11 @@ function FuncEvalApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking elapsed time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -47397,44 +47693,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="funcevalapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="funcevalapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -47492,7 +47792,7 @@ const loadQuestion = async () => {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function LineEqApp({ onBack }) {
+function LineEqApp({ onBack, isGoalMode = false }) {
   // ─────── Quiz State Management ──────────────────────────────────
   // Difficulty level: 'easy' | 'medium' | 'hard' (affects slope/intercept values)
   const [difficulty, setDifficulty] = useState('easy')
@@ -47530,6 +47830,11 @@ function LineEqApp({ onBack }) {
   // Array of {question, userAnswer, correctAnswer, correct, time} result objects
   const [results, setResults] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   // Timer instance for tracking elapsed time per question
   const timer = useTimer()
   const advanceFnRef = useRef(null)
@@ -47682,44 +47987,48 @@ const loadQuestion = async () => {
           </label>
         </div>
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed', label: '⚡ Speed Run' },
-            { key: 'perfect', label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' }
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="lineeqapp-goal" checked={sessionGoal === g.key} onChange={() => {
-                setSessionGoal(g.key)
-                
-              }} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '12px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed', label: '⚡ Speed Run' },
+                      { key: 'perfect', label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' }
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed' ? { background: 'rgba(255,179,0,0.18)', borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect' ? { background: 'rgba(244,67,54,0.18)', borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="lineeqapp-goal" checked={sessionGoal === g.key} onChange={() => {
+                          setSessionGoal(g.key)
+                          
+                        }} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
           <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
@@ -48020,7 +48329,7 @@ function getPromptForType(type, q) {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function CustomApp({ onBack }) {
+function CustomApp({ onBack, isGoalMode = false }) {
   // ─────── Setup Phase State ──────────────────────────────────
   // Current phase: 'setup' | 'quiz' | 'finished'
   const [phase, setPhase] = useState('setup')
@@ -48067,6 +48376,11 @@ function CustomApp({ onBack }) {
   // Object for storing various inputs: {p, q, r, s} for polyfactor, {factors} for primefactor, {x, y, z} for simul, {m, c} for lineq, etc.
   const [inputs, setInputs] = useState({})
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
 
   // ─────── Derived State ──────────────────────────────────
   // Total number of questions in this quiz (length of plan)
@@ -48979,41 +49293,45 @@ const startQuiz = async () => {
           </div>
         </>}
 
-        <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
-        <div className="checkbox-group" style={{ marginBottom: '8px' }}>
-          {[
-            { key: 'standard', label: 'Standard' },
-            { key: 'speed',    label: '⚡ Speed Run' },
-            { key: 'perfect',  label: '🎯 Perfect Solve' },
-            { key: 'revision', label: '🔄 Revision' },
-          ].map(g => (
-            <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
-              style={sessionGoal === g.key ? (
-                g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
-                g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
-                g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
-              ) : {}}>
-              <input type="radio" name="customapp-goal" checked={sessionGoal === g.key}
-                onChange={() => setSessionGoal(g.key)} />
-              {g.label}
-            </label>
-          ))}
-        </div>
-        {sessionGoal === 'speed' && (
-          <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
-            ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
-          </p>
-        )}
-        {sessionGoal === 'perfect' && (
-          <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
-            🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
-          </p>
-        )}
-        {sessionGoal === 'revision' && (
-          <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
-            🔄 Focuses on topics you previously answered incorrectly.
-          </p>
-        )}
+        {isGoalMode && (
+        <>
+          <p className="welcome-text" style={{ marginTop: '14px', fontSize: '0.92rem', fontWeight: 700, marginBottom: '6px' }}>Practice Goal:</p>
+                  <div className="checkbox-group" style={{ marginBottom: '8px' }}>
+                    {[
+                      { key: 'standard', label: 'Standard' },
+                      { key: 'speed',    label: '⚡ Speed Run' },
+                      { key: 'perfect',  label: '🎯 Perfect Solve' },
+                      { key: 'revision', label: '🔄 Revision' },
+                    ].map(g => (
+                      <label key={g.key} className={`checkbox-pill${sessionGoal === g.key ? ' active' : ''}`}
+                        style={sessionGoal === g.key ? (
+                          g.key === 'speed'    ? { background: 'rgba(255,179,0,0.18)',  borderColor: '#ffb300', color: '#ffb300' } :
+                          g.key === 'perfect'  ? { background: 'rgba(244,67,54,0.18)',  borderColor: '#f44336', color: '#f44336' } :
+                          g.key === 'revision' ? { background: 'rgba(33,150,243,0.18)', borderColor: '#2196f3', color: '#2196f3' } : {}
+                        ) : {}}>
+                        <input type="radio" name="customapp-goal" checked={sessionGoal === g.key}
+                          onChange={() => setSessionGoal(g.key)} />
+                        {g.label}
+                      </label>
+                    ))}
+                  </div>
+                  {sessionGoal === 'speed' && (
+                    <p style={{ fontSize: '0.82rem', color: '#ffb300', marginBottom: '8px' }}>
+                      ⚡ Easy 5s · Medium 10s · Hard 15s · Extra Hard 20s · Adaptive 10s. Double coins for correct!
+                    </p>
+                  )}
+                  {sessionGoal === 'perfect' && (
+                    <p style={{ fontSize: '0.82rem', color: '#f44336', marginBottom: '8px' }}>
+                      🎯 One wrong answer ends the quiz. No timer shown. Can you go flawless?
+                    </p>
+                  )}
+                  {sessionGoal === 'revision' && (
+                    <p style={{ fontSize: '0.82rem', color: '#2196f3', marginBottom: '8px' }}>
+                      🔄 Focuses on topics you previously answered incorrectly.
+                    </p>
+                  )}
+        </>
+      )}
 
         <div className="question-count-row">
           <label className="question-count-label">How many questions?</label>
@@ -50230,6 +50548,11 @@ function Tatsavit1App({ onBack }) {
   const [results, setResults] = useState([])
   const [finished, setFinished] = useState(false)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
 
   const total = TATSAVIT1_QUESTIONS.length
   const q = TATSAVIT1_QUESTIONS[idx]
@@ -50705,6 +51028,11 @@ function RiyaApp({ onBack }) {
   // restore the student's earlier picks so they can review what they did.
   const [perQuestion, setPerQuestion] = useState([])
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
 
   const totalUnits = RIYA_UNITS.length
   const unit = RIYA_UNITS[unitIdx]
@@ -51163,6 +51491,11 @@ function TatsavitLineApp({ onBack }) {
   // Visible domain on each axis (±zoom units). Smaller = zoomed in.
   const [zoom, setZoom] = useState(10)
   const [sessionGoal, setSessionGoal] = useState('standard')
+  useEffect(() => {
+    if (!isGoalMode) {
+      setSessionGoal('standard');
+    }
+  }, [isGoalMode]);
   const svgRef = useRef(null)
 
   // Regenerate random points when `round` changes
