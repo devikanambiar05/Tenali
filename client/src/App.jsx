@@ -39825,10 +39825,10 @@ function TransferChallengeApp({ topicKey, onBack, completedTopics, goldMastery, 
           ) : (
             <>
               <p className="welcome-text" style={{ fontSize: '1.2rem', fontWeight: 600 }}>
-                Challenge Completed!
+                You are close, try again!
               </p>
               <p className="welcome-text">
-                Verify your results below. If you already earned Gold Mastery, it remains saved!
+                Keep practicing to unlock your Gold Mastery Badge! Review your results below.
               </p>
             </>
           )}
