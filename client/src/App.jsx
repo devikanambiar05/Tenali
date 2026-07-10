@@ -35958,7 +35958,9 @@ function App() {
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
-        <AuthGate><VachanaApp onBack={() => { window.location.href = '/' }} /></AuthGate>
+        <div className="app-shell">
+          <VachanaApp onBack={() => { window.location.href = '/' }} />
+        </div>
       </>
     )
   }
@@ -36070,15 +36072,19 @@ function App() {
       <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
         {theme === 'dark' ? '☀️' : '🌙'}
       </button>
-      <div className="card">
-        {!mode ? (
-          <Home onSelect={setMode} />
-        ) : ActiveApp ? (
-          <ActiveApp onBack={() => setMode(null)} />
-        ) : (
-          <Home onSelect={setMode} />
-        )}
-      </div>
+      {mode === 'vachana' ? (
+        <VachanaApp onBack={() => setMode(null)} />
+      ) : (
+        <div className="card">
+          {!mode ? (
+            <Home onSelect={setMode} />
+          ) : ActiveApp ? (
+            <ActiveApp onBack={() => setMode(null)} />
+          ) : (
+            <Home onSelect={setMode} />
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -49694,11 +49700,12 @@ const VachanaIcons = {
       <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
     </svg>
   ),
-  proofreview: (
+  etymology: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M14 2H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="9.5" y1="15" x2="14.5" y2="15" />
+      <path d="M4 22v-4a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v4" />
+      <path d="M12 14V2" />
+      <path d="M12 8L8 4" />
+      <path d="M12 6l4-3" />
     </svg>
   ),
   simplify: (
@@ -49741,7 +49748,7 @@ function VachanaApp({ onBack }) {
     { id: 'rewrite', label: 'Syntactic Rewriter', icon: VachanaIcons.rewrite, desc: 'Translate passive word problems to chronological active voice' },
     { id: 'storymatch', label: 'Equation-to-Story', icon: VachanaIcons.storymatch, desc: 'Connect abstract algebra with real-world scenarios' },
     { id: 'graphstory', label: 'Visual-to-Narrative', icon: VachanaIcons.graphstory, desc: 'Translate visual function graphs into descriptive stories' },
-    { id: 'proofreview', label: 'Error Communication', icon: VachanaIcons.proofreview, desc: 'Identify and explain algebraic step errors' },
+    { id: 'etymology', label: 'Root Decoder', icon: VachanaIcons.etymology, desc: 'Break down mathematical terms into Greek/Latin roots' },
     { id: 'simplify', label: 'Concept Simplification', icon: VachanaIcons.simplify, desc: 'Explain complex math definitions simply to beginners' }
   ];
 
@@ -50211,22 +50218,55 @@ function VachanaApp({ onBack }) {
     }
   };
 
-  // --- 20. Error Communication State ---
-  const [proofreviewAnswer, setProofreviewAnswer] = useState(null);
-  const [proofreviewMsg, setProofreviewMsg] = useState('');
-  const proofreviewSteps = [
-    { label: 'Step 1: 2x + 5 = 15', correct: false },
-    { label: 'Step 2: 2x = 15 + 5', correct: true, feedback: 'In Step 2, moving +5 to the other side of the equation should have inverted the sign to minus: 2x = 15 − 5.' },
-    { label: 'Step 3: 2x = 20', correct: false },
-    { label: 'Step 4: x = 10', correct: false }
+  // --- 20. Root Decoder State ---
+  const etymologyQuestions = [
+    {
+      root: 'poly',
+      origin: 'Greek',
+      examples: 'polygon, polynomial',
+      question: 'What does the Greek root "poly" mean in mathematics?',
+      options: [
+        { text: 'One (like monomial)', correct: false },
+        { text: 'Equal (like equation)', correct: false },
+        { text: 'Many (like polynomial or polygon)', correct: true, explanation: 'Correct! "Poly" means many. A polygon has many angles/sides, and a polynomial has many algebraic terms.' },
+        { text: 'Around (like circumference)', correct: false }
+      ]
+    },
+    {
+      root: 'equi',
+      origin: 'Latin',
+      examples: 'equation, equilateral, equivalence',
+      question: 'What does the Latin root "equi" mean in mathematics?',
+      options: [
+        { text: 'Half (like semicircle)', correct: false },
+        { text: 'Equal (like equation or equilateral)', correct: true, explanation: 'Correct! "Equi" means equal. An equation states that two expressions are equal, and an equilateral triangle has equal sides.' },
+        { text: 'Ten (like decimal)', correct: false },
+        { text: 'Angle (like pentagon)', correct: false }
+      ]
+    },
+    {
+      root: 'circum',
+      origin: 'Latin',
+      examples: 'circumference, circumscribe',
+      question: 'What does the Latin root "circum" mean in mathematics?',
+      options: [
+        { text: 'Around / Round (like circumference)', correct: true, explanation: 'Correct! "Circum" means around. Circumference is the distance around a circle, and circumscribing is drawing a figure around another.' },
+        { text: 'Side (like lateral)', correct: false },
+        { text: 'Three (like triangle)', correct: false },
+        { text: 'Under (like subset)', correct: false }
+      ]
+    }
   ];
+  const [etymologyIdx, setEtymologyIdx] = useState(0);
+  const [etymologySelected, setEtymologySelected] = useState(null);
+  const [etymologyMsg, setEtymologyMsg] = useState('');
 
-  const checkProofreview = (step) => {
-    setProofreviewAnswer(step.label);
-    if (step.correct) {
-      setProofreviewMsg(`✅ Correct! ${step.feedback}`);
+  const checkEtymology = (opt) => {
+    setEtymologySelected(opt.text);
+    if (opt.correct) {
+      setEtymologyMsg(`✅ ${opt.explanation}`);
     } else {
-      setProofreviewMsg('❌ Incorrect step. This step is mathematically valid based on the previous step. Keep looking for where the logic went wrong!');
+      setEtymologyMsg('❌ That is incorrect. Think about how this root is used in common math terms (e.g. polygon, equation, circumference).');
     }
   };
 
@@ -50251,23 +50291,21 @@ function VachanaApp({ onBack }) {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1rem', color: 'var(--clr-text)' }}>
       {/* Vachana Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '12px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {VachanaIcons.header} Vachana Literary Lab
-          </h1>
-          <p className="subtitle" style={{ margin: '4px 0 0 0' }}>Learn to parse, translate, and communicate in the language of mathematics</p>
-        </div>
-        {activeTab === null ? (
+      {activeTab === null && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--clr-border)', paddingBottom: '12px' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {VachanaIcons.header} Vachana Literary Lab
+            </h1>
+            <p className="subtitle" style={{ margin: '4px 0 0 0' }}>Learn to parse, translate, and communicate in the language of mathematics</p>
+          </div>
           <button className="back-button" onClick={onBack}>← Back to Home</button>
-        ) : (
-          <button className="back-button" onClick={() => setActiveTab(null)}>← Back to Modules</button>
-        )}
-      </div>
+        </div>
+      )}
 
       {activeTab === null ? (
-        /* Minimalist Dashboard Grid of Box Divs */
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '20px', marginTop: '10px' }}>
+        /* Minimalist Dashboard Grid of Box Divs (7x3 grid) */
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginTop: '10px' }}>
           {tabs.map(tab => (
             <div
               key={tab.id}
@@ -50296,8 +50334,9 @@ function VachanaApp({ onBack }) {
                 setStorymatchMsg('');
                 setGraphstorySelected(null);
                 setGraphstoryMsg('');
-                setProofreviewAnswer(null);
-                setProofreviewMsg('');
+                setEtymologySelected(null);
+                setEtymologyMsg('');
+                setEtymologyIdx(0);
                 setSimplifySelected(null);
                 setSimplifyMsg('');
               }}
@@ -51235,41 +51274,84 @@ function VachanaApp({ onBack }) {
             </div>
           )}
 
-          {/* 20. ERROR COMMUNICATION */}
-          {activeTab === 'proofreview' && (
+          {/* 20. ROOT DECODER */}
+          {activeTab === 'etymology' && (
             <div>
-              <div style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
-                <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-                  Analyze the step-by-step algebraic derivation below:
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '0.9rem', color: 'var(--clr-text-soft)', fontWeight: 500 }}>
+                  Word Root {etymologyIdx + 1} of {etymologyQuestions.length}
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setEtymologyIdx(prev => Math.max(0, prev - 1));
+                      setEtymologySelected(null);
+                      setEtymologyMsg('');
+                    }}
+                    disabled={etymologyIdx === 0}
+                    className="submit-btn"
+                    style={{ padding: '6px 12px', fontSize: '0.85rem', width: 'auto', background: etymologyIdx === 0 ? 'rgba(255,255,255,0.05)' : 'transparent', border: '1px solid var(--clr-border)', color: etymologyIdx === 0 ? 'var(--clr-text-soft)' : 'inherit', cursor: etymologyIdx === 0 ? 'not-allowed' : 'pointer' }}
+                  >
+                    ◀ Prev
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEtymologyIdx(prev => Math.min(etymologyQuestions.length - 1, prev + 1));
+                      setEtymologySelected(null);
+                      setEtymologyMsg('');
+                    }}
+                    disabled={etymologyIdx === etymologyQuestions.length - 1}
+                    className="submit-btn"
+                    style={{ padding: '6px 12px', fontSize: '0.85rem', width: 'auto', background: etymologyIdx === etymologyQuestions.length - 1 ? 'rgba(255,255,255,0.05)' : 'transparent', border: '1px solid var(--clr-border)', color: etymologyIdx === etymologyQuestions.length - 1 ? 'var(--clr-text-soft)' : 'inherit', cursor: etymologyIdx === etymologyQuestions.length - 1 ? 'not-allowed' : 'pointer' }}
+                  >
+                    Next ▶
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--clr-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--clr-accent)' }}>
+                    "{etymologyQuestions[etymologyIdx].root}"
+                  </span>
+                  <span style={{ fontSize: '0.8rem', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                    {etymologyQuestions[etymologyIdx].origin} Origin
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 14px 0', fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
+                  Examples: <strong style={{ color: 'var(--clr-text)' }}>{etymologyQuestions[etymologyIdx].examples}</strong>
+                </p>
+                <p style={{ margin: 0, fontSize: '0.98rem', fontWeight: 500, lineHeight: '1.5' }}>
+                  {etymologyQuestions[etymologyIdx].question}
                 </p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                {proofreviewSteps.map((step, idx) => (
+                {etymologyQuestions[etymologyIdx].options.map((opt, idx) => (
                   <button
                     key={idx}
-                    onClick={() => checkProofreview(step)}
+                    onClick={() => checkEtymology(opt)}
                     className="submit-btn"
                     style={{
                       textAlign: 'left',
                       padding: '12px 16px',
-                      background: proofreviewAnswer === step.label ? 'var(--clr-accent)' : 'transparent',
+                      background: etymologySelected === opt.text ? 'var(--clr-accent)' : 'transparent',
                       border: '1px solid var(--clr-accent)',
-                      color: proofreviewAnswer === step.label ? '#fff' : 'var(--clr-accent)'
+                      color: etymologySelected === opt.text ? '#fff' : 'var(--clr-accent)'
                     }}
                   >
-                    {step.label}
+                    {opt.text}
                   </button>
                 ))}
               </div>
 
-              {proofreviewMsg && (
+              {etymologyMsg && (
                 <div style={{
                   fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
-                  background: proofreviewMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
-                  border: proofreviewMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                  background: etymologyMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: etymologyMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
                 }}>
-                  {proofreviewMsg}
+                  {etymologyMsg}
                 </div>
               )}
             </div>

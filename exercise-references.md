@@ -157,3 +157,19 @@ This document details the pedagogical foundations, cognitive models, and academi
 * **Key References**:
   * Gentner, D. (1983). Structure-Mapping: A Theoretical Framework for Analogy. *Cognitive Science*, 7(2), 155-170.
   * Holyoak, K. J., & Thagard, P. (1995). *Mental Leaps: Analogy in Creative Thought*. MIT Press.
+
+---
+
+## Part 4: Vocabulary Progression & Questioning Frameworks
+
+### 22. Mathematical Vocabulary Structure
+* **Pedagogical Framework**: Structured Vocabulary Acquisition (DfEE, 2000).
+* **Research Context**: A structured approach to mathematics vocabulary ensures that students are not confused by everyday words having different technical meanings (e.g., "odd", "table", "product"). The research establishes age-specific vocabulary checkpoints (Reception through Year 6) across categories like Numbers, Calculations, Solving Problems, Measures, and Shape.
+* **Key References**:
+  * Department for Education and Employment (DfEE). (2000). *Mathematical Vocabulary Book: National Numeracy Strategy*.
+
+### 23. Question Typologies in Mathematics
+* **Pedagogical Framework**: Socratic Questioning & Cognitive Categorization.
+* **Research Context**: The way questions are posed controls the depth of cognitive engagement. Distinguishing between "Closed" questions (recall) and "Open" questions (hypothesizing, applying reasoning, finding multiple solutions) pushes students past rote memorization and forces them to articulate the *why* of mathematics.
+* **Key References**:
+  * Department for Education and Employment (DfEE). (2000). *Mathematical Vocabulary Book: National Numeracy Strategy*.
