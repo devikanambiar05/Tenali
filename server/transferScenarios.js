@@ -44,12 +44,12 @@ const percentScenarios = [
       return {
         scenarioId: 'pct-transfer-001',
         context: 'shopping',
-        prompt: `${name} wants to buy a ${item} priced at ₹${price}. The store offers a ${discount}% discount. After the discount, ${gst}% GST is applied. What is the final price?`,
+        prompt: `${name} wants to buy a ${item} that costs ₹${price}. The shop offers a ${discount}% discount. A sales tax of ${gst}% is added after the discount. What is the final price?`,
         variables: vars,
         hints: [
-          'Break this into steps: first find the discounted price, then apply the GST to that discounted price.',
-          `The discount is ${discount}% of ₹${price} (which is ₹${res.discountAmt}). The discounted price is ₹${price} - ₹${res.discountAmt} = ₹${res.discountedDisplay}. Now find the GST.`,
-          `The GST is ${gst}% of ₹${res.discountedDisplay} (which is ₹${res.gstAmt}). Add this to the discounted price to get the final answer.`
+          `Hint 1 — Observation 👀: Think about the starting price first. What is the discount percent and the tax percent?`,
+          `Hint 2 — Strategy 🧠: Find the price after the discount is subtracted, then find the new price after the tax is added.`,
+          `Hint 3 — Gentle Nudge 💡: Start by calculating the discount amount on the original price.`
         ]
       };
     },
@@ -85,12 +85,12 @@ const percentScenarios = [
       return {
         scenarioId: 'pct-transfer-002',
         context: 'sports',
-        prompt: `The ${team} cricket team needs to score ${target} runs to win. In the first ${overs} overs, they score at a rate of ${rate} runs per over. What percentage of the target runs have they already scored?`,
+        prompt: `A sports team needs to score ${target} runs to win. In the first ${overs} overs, they score ${rate} runs per over. What percentage of the target runs have they scored so far?`,
         variables: vars,
         hints: [
-          'First calculate the total runs scored in the first few overs by multiplying the run rate by the number of overs.',
-          `They scored ${overs} × ${rate} = ${res.runs} runs. Now, find what percentage ${res.runs} is of ${target}.`,
-          `Calculate (${res.runs} / ${target}) × 100 to get the percentage.`
+          `Hint 1 — Observation 👀: Think about the whole target amount first. How many runs have they scored in each over, and for how many overs?`,
+          `Hint 2 — Strategy 🧠: First find the total runs scored, then find what percentage that is of the target.`,
+          `Hint 3 — Gentle Nudge 💡: Try finding the runs scored in the first few overs by combining the overs and runs per over.`
         ]
       };
     },
@@ -129,12 +129,12 @@ const percentScenarios = [
       return {
         scenarioId: 'pct-transfer-003',
         context: 'cooking',
-        prompt: `A recipe for ${dish} serves ${servings} people and requires ${sugar}g of sugar. If you want to make the dish for ${newServings} people, by what percentage must you increase the amount of sugar?`,
+        prompt: `A sweet recipe for ${dish} serves ${servings} friends and uses ${sugar}g of sugar. If you want to make it for ${newServings} friends, by what percentage must you increase the sugar?`,
         variables: vars,
         hints: [
-          `Notice that the amount of sugar (${sugar}g) is a distractor! The sugar increase percentage is identical to the servings increase percentage.`,
-          `Calculate the percentage increase in servings from ${servings} to ${newServings}.`,
-          `The formula is: ((New Servings - Original Servings) / Original Servings) × 100.`
+          `Hint 1 — Observation 👀: Look at the original number of friends and the new number of friends. Does the exact weight of sugar change the percentage increase?`,
+          `Hint 2 — Strategy 🧠: The percentage increase in sugar is the same as the percentage increase in guests. How do we find percentage increase?`,
+          `Hint 3 — Gentle Nudge 💡: Find how many extra friends you are serving first, and compare that to the starting number of friends.`
         ]
       };
     },
@@ -170,12 +170,12 @@ const ratioScenarios = [
       return {
         scenarioId: 'ratio-transfer-001',
         context: 'travel',
-        prompt: `On a map of India, ${scale} cm represents ${distance} km in real life. If two cities are ${mapDist} cm apart on the map, what is the actual distance between them in km?`,
+        prompt: `On a map, ${scale} cm represents ${distance} km in real life. If two parks are ${mapDist} cm apart on the map, what is the actual distance between them in km?`,
         variables: vars,
         hints: [
-          `This is a ratio problem. The scale ratio is map distance : actual distance = ${scale} : ${distance}.`,
-          `For 1 cm on the map, the actual distance is ${distance} / ${scale} = ${distance / scale} km.`,
-          `Multiply the 1-cm distance by the map distance (${mapDist} cm) to get the answer.`
+          `Hint 1 — Observation 👀: Which two things are being compared? Each centimeter on the map represents a certain real distance.`,
+          `Hint 2 — Strategy 🧠: The comparison should stay the same. Find how many real kilometers 1 cm represents.`,
+          `Hint 3 — Gentle Nudge 💡: Find how many times the map distance has grown from the scale.`
         ]
       };
     },
@@ -212,12 +212,12 @@ const ratioScenarios = [
       return {
         scenarioId: 'ratio-transfer-002',
         context: 'cooking',
-        prompt: `To make a jug of lemonade, the ratio of lemon juice to water is ${pair.juice}:${pair.water}. If you use ${juiceUsed} ml of lemon juice, how much water in ml should you add to keep the same ratio?`,
+        prompt: `To mix a fruit drink, the ratio of juice to water is ${pair.juice}:${pair.water}. If you use ${juiceUsed} ml of juice, how much water in ml should you add to keep the comparison the same?`,
         variables: vars,
         hints: [
-          `The parts ratio is juice : water = ${pair.juice} : ${pair.water}.`,
-          `Calculate how many times larger the juice used (${juiceUsed} ml) is than the ratio part (${pair.juice}).`,
-          `Multiply that scaling factor by the water ratio part (${pair.water}) to find the water needed.`
+          `Hint 1 — Observation 👀: Which two things are being compared? Identify the parts of juice and water.`,
+          `Hint 2 — Strategy 🧠: The ratio of juice to water must stay the same. How many times larger is the juice used compared to its ratio part?`,
+          `Hint 3 — Gentle Nudge 💡: Find the growth factor of the juice, and apply it to the water part.`
         ]
       };
     },
@@ -263,12 +263,12 @@ const ratioScenarios = [
       return {
         scenarioId: 'ratio-transfer-003',
         context: 'shopping',
-        prompt: `Ravi and Priya divide their pocket money of ₹${total} in the ratio ${r1}:${r2}. How much more money does Priya get than Ravi, given that Priya gets the larger share?`,
+        prompt: `Two friends, Ravi and Priya, share pocket money of ₹${total} in the ratio ${r1}:${r2}. How much more money does Priya get than Ravi?`,
         variables: vars,
         hints: [
-          `First find the value of one part in the ratio. The total ratio parts sum up to ${r1} + ${r2} = ${r1 + r2} parts.`,
-          `One ratio part is worth ₹${total} / ${r1 + r2} = ₹${total / (r1 + r2)}.`,
-          `Calculate the difference in parts between Priya and Ravi (${r2} - ${r1} = ${r2 - r1} parts), and multiply it by the value of one part.`
+          `Hint 1 — Observation 👀: What is the total money to share, and how many parts does each friend get?`,
+          `Hint 2 — Strategy 🧠: Find the value of one part first by splitting the total money equally among all parts.`,
+          `Hint 3 — Gentle Nudge 💡: Combine the ratio parts to find the total number of parts first.`
         ]
       };
     },
@@ -300,18 +300,19 @@ const fractionaddScenarios = [
         { f1n: 1, f1d: 2, f2n: 1, f2d: 5 }  // sum 7/10, rem 3/10
       ];
       const opt = options[Math.floor(Math.random() * options.length)];
-      const vars = { f1n: opt.f1n, f1d: opt.f1d, f2n: opt.f2n, f2d: opt.f2d };
+      const { f1n, f1d, f2n, f2d } = opt;
+      const vars = { f1n, f1d, f2n, f2d };
       const res = evaluateFrac001(vars);
 
       return {
         scenarioId: 'frac-transfer-001',
         context: 'pocketmoney',
-        prompt: `Arjun spends ${opt.f1n}/${opt.f1d} of his pocket money on books and ${opt.f2n}/${opt.f2d} on snacks. What fraction of his pocket money does he have left?`,
+        prompt: `Arjun spends ${f1n}/${f1d} of his pocket money on books and ${f2n}/${f2d} on snacks. What fraction of his money does he have left?`,
         variables: vars,
         hints: [
-          `First add the two fractions together to find the total fraction spent: ${opt.f1n}/${opt.f1d} + ${opt.f2n}/${opt.f2d}.`,
-          `Find a common denominator to add the fractions. For example, the common denominator for ${opt.f1d} and ${opt.f2d} is ${res.lcm}.`,
-          `Subtract the sum of the spent fractions from the whole pocket money (which is represented by 1).`
+          `Hint 1 — Observation 👀: Are the pieces or parts of the pocket money the same size? Identify the fractions spent.`,
+          `Hint 2 — Strategy 🧠: To add fractions with different sizes, we must first make the parts the same size.`,
+          `Hint 3 — Gentle Nudge 💡: Find a common denominator to rewrite both fractions before combining them.`
         ]
       };
     },
@@ -338,18 +339,19 @@ const fractionaddScenarios = [
         { f1n: 1, f1d: 6, f2n: 1, f2d: 4 }  // sum 5/12
       ];
       const opt = options[Math.floor(Math.random() * options.length)];
-      const vars = { f1n: opt.f1n, f1d: opt.f1d, f2n: opt.f2n, f2d: opt.f2d };
+      const { f1n, f1d, f2n, f2d } = opt;
+      const vars = { f1n, f1d, f2n, f2d };
       const res = evaluateFrac002(vars);
 
       return {
         scenarioId: 'frac-transfer-002',
         context: 'cooking',
-        prompt: `Meena ate ${opt.f1n}/${opt.f1d} of a pizza, and Rahul ate ${opt.f2n}/${opt.f2d} of the same pizza. What fraction of the pizza was eaten in total?`,
+        prompt: `Meena ate ${f1n}/${f1d} of a pizza, and Rahul ate ${f2n}/${f2d} of the same pizza. What fraction of the pizza did they eat altogether?`,
         variables: vars,
         hints: [
-          `To find the total fraction of pizza eaten, add the two fractions: ${opt.f1n}/${opt.f1d} + ${opt.f2n}/${opt.f2d}.`,
-          `Find a common denominator (LCM of ${opt.f1d} and ${opt.f2d} is ${res.lcm}).`,
-          `Convert both fractions to have this common denominator, then add the numerators.`
+          `Hint 1 — Observation 👀: Are the pizza pieces the same size? Look at the bottom number of both fractions.`,
+          `Hint 2 — Strategy 🧠: If the pieces are different sizes, find a way to cut the pizza so the parts are equal.`,
+          `Hint 3 — Gentle Nudge 💡: Find the least common multiple of the two bottom numbers to make the pieces equal.`
         ]
       };
     },
@@ -440,12 +442,12 @@ const additionScenarios = [
       return {
         scenarioId: 'add-transfer-001',
         context: 'travel',
-        prompt: `A passenger train leaves Chennai Central with ${initial} passengers. At the first station, ${off} passengers get off the train, and ${on} new passengers get on. How many passengers are on the train when it departs the station?`,
+        prompt: `A school bus starts with ${initial} children. At the first stop, ${off} children get off, and ${on} children get on. How many children are on the bus now?`,
         variables: vars,
         hints: [
-          `Find out how many passengers were left on the train when ${off} passengers got off first.`,
-          `Subtract ${off} from the initial count of ${initial} passengers (which is ${initial - off}).`,
-          `Now add the ${on} new passengers who got on the train.`
+          `Hint 1 — Observation 👀: Is the total number of children increasing or decreasing at each step?`,
+          `Hint 2 — Strategy 🧠: Think about which numbers should be subtracted and which should be added.`,
+          `Hint 3 — Gentle Nudge 💡: Calculate how many children were left on the bus after the first stop.`
         ]
       };
     },
@@ -472,12 +474,12 @@ const additionScenarios = [
       return {
         scenarioId: 'add-transfer-002',
         context: 'shopping',
-        prompt: `Karan goes shopping with ₹${budget}. He buys a shirt for ₹${s1} and a belt for ₹${s2}. Later, he returns a small item and receives a cash refund of ₹${refund}. How much money does Karan have left now?`,
+        prompt: `Karan goes to a toy store with ₹${budget}. He buys a toy train for ₹${s1} and a book for ₹${s2}. Then, he returns a card and gets ₹${refund} back. How much money does he have now?`,
         variables: vars,
         hints: [
-          `Calculate the total amount spent on the shirt and the belt first.`,
-          `Subtract that total spent amount from his initial budget of ₹${budget}.`,
-          `Add the refund of ₹${refund} to find his final remaining balance.`
+          `Hint 1 — Observation 👀: What is the starting amount of money? Note which actions make the money go down and which make it go up.`,
+          `Hint 2 — Strategy 🧠: Find the total amount spent first, then subtract it and add the returned amount.`,
+          `Hint 3 — Gentle Nudge 💡: Combine the cost of the toy train and the book first.`
         ]
       };
     },
@@ -507,12 +509,12 @@ const decimalsScenarios = [
       return {
         scenarioId: 'dec-transfer-001',
         context: 'sports',
-        prompt: `During a school track meet, the winner of the 100-meter sprint clocks a time of ${t1} seconds. The runner-up crosses the finish line trailing the winner by ${gap} seconds. What is the runner-up's race completion time in seconds?`,
+        prompt: `During a race, the winner finishes in ${t1} seconds. The next runner finishes ${gap} seconds after the winner. How many seconds did the next runner take?`,
         variables: vars,
         hints: [
-          `Hint 1 - Observation: Identify the winner's race duration. Does trailing the winner mean taking more or less time to finish?`,
-          `Hint 2 - Strategy: Add the trailing delay time to the winning time to find the runner-up's time. Make sure to align the decimal places.`,
-          `Hint 3 - Gentle Nudge: Think of the winning time as the starting point, and increase it by the decimal gap value.`
+          `Hint 1 — Observation 👀: Notice where the decimal point is. Does finishing after the winner mean taking more or less time?`,
+          `Hint 2 — Strategy 🧠: Digits in the same place value should line up. How do we add two decimal numbers?`,
+          `Hint 3 — Gentle Nudge 💡: Place the numbers vertically so the decimal points line up perfectly.`
         ]
       };
     },
@@ -537,12 +539,12 @@ const decimalsScenarios = [
       return {
         scenarioId: 'dec-transfer-002',
         context: 'cooking',
-        prompt: `A baker needs a total of ${target} kg of mixed flour for a recipe. They weigh out ${c1} kg of wheat flour and ${c2} kg of ragi flour into a bowl. How many more kg of flour must they add to reach the exact target weight?`,
+        prompt: `A chef needs ${target} kg of flour for a cake. They put ${c1} kg of wheat flour and ${c2} kg of corn flour in a bowl. How much more flour do they need to add?`,
         variables: vars,
         hints: [
-          `Hint 1 - Observation: What is the total target weight of flour needed, and how much wheat and ragi flour have already been weighed?`,
-          `Hint 2 - Strategy: Find the combined weight of the flour already in the bowl, then find the difference between that total and the target.`,
-          `Hint 3 - Gentle Nudge: Combine the decimal values of the weighed flours first before calculating what remains.`
+          `Hint 1 — Observation 👀: What is the target weight? Look at the decimal values of the flour already in the bowl.`,
+          `Hint 2 — Strategy 🧠: Digits in the same place value should line up. Find the total weight of the two flours in the bowl first.`,
+          `Hint 3 — Gentle Nudge 💡: Line up the decimal points of the weighed flours to add them.`
         ]
       };
     },
