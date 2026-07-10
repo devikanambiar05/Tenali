@@ -491,8 +491,8 @@
   animation: men-pulse 2.5s ease-in-out infinite;
 }
 @keyframes men-pulse {
-  0%, 100% { opacity: 0.85; filter: drop-shadow(0 6px 12px rgba(102,126,234,0.3)); }
-  50%       { opacity: 1.0; filter: drop-shadow(0 12px 24px rgba(102,126,234,0.5)); }
+  0%, 100% { opacity: 0.85; filter: drop-shadow(0 6px 12px rgba(253,160,133,0.3)); }
+  50%       { opacity: 1.0; filter: drop-shadow(0 12px 24px rgba(253,160,133,0.5)); }
 }
 
 /* Spinning dashed outline ring for circle circumference */

@@ -55,6 +55,7 @@ function useProgressSubmit(revealed, isCorrect, topic, questionId) {
 }
 import './App.css'
 import VisualMathLabRedux from './VisualMathLabRedux';
+import CoordinateGrid from './components/CoordinateGrid';
 
 
 // API base URL from environment variables (Vite)
@@ -33283,7 +33284,10 @@ function ComicAdditionApp({ onBack }) {
         {question && (
           <>
             <div className="comic-panel left">
-              <div className="comic-avatar"><img src="/mom.png" alt="Mom" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} /><br/><span>Mom</span></div>
+              <div className="comic-avatar">
+                <div className="avatar-emoji">👩🏽</div>
+                <span>Mom</span>
+              </div>
               <div className="comic-bubble">
                 Oh! We have {question.a} oranges in this basket, and {question.b} oranges on the table.
               </div>
@@ -33292,11 +33296,17 @@ function ComicAdditionApp({ onBack }) {
               <div className="comic-bubble">
                 I wonder how many oranges we have in total? Let's add them up!
               </div>
-              <div className="comic-avatar"><img src="/boy.png" alt="Boy" style={{ width: 80, height: 80, borderRadius: '50%', objectFit: 'cover' }} /><br/><span>Boy</span></div>
+              <div className="comic-avatar">
+                <div className="avatar-emoji">👦🏽</div>
+                <span>Boy</span>
+              </div>
             </div>
             
             <div className="comic-panel left" style={{ marginTop: 20 }}>
-              <div className="comic-avatar">👩🏽<br/><span>Mom</span></div>
+              <div className="comic-avatar">
+                <div className="avatar-emoji">👩🏽</div>
+                <span>Mom</span>
+              </div>
               <div className="comic-bubble">
                 Can you tell me what {question.a} + {question.b} is?
               </div>
@@ -33502,6 +33512,261 @@ function DragDropCountingApp({ onBack }) {
       </div>
     </QuizLayout>
   )
+}
+
+function CoordGeomInteractiveApp({ onBack }) {
+  const [started, setStarted] = useState(false);
+  const [finished, setFinished] = useState(false);
+  const [round, setRound] = useState(0);
+  const [numQuestions, setNumQuestions] = useState('10');
+  const [difficulty, setDifficulty] = useState('easy');
+  const [score, setScore] = useState(0);
+  
+  const [currentQ, setCurrentQ] = useState(null);
+  const [dartPos, setDartPos] = useState(null); // {x, y}
+  const [textAnswer, setTextAnswer] = useState(''); // for distance, gradient, etc.
+  const [revealed, setRevealed] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(null);
+  const [feedback, setFeedback] = useState('');
+  const [results, setResults] = useState([]);
+  
+  useProgressSubmit(revealed, isCorrect, 'coordgeom', currentQ?.id);
+  const timer = useTimer();
+
+  const loadQuestion = async () => {
+    try {
+      const r = await fetch(`/coordgeom-api/question?difficulty=${difficulty}`);
+      if (!r.ok) throw new Error('Server error');
+      const data = await r.json();
+      setCurrentQ(data);
+      setDartPos(null);
+      setTextAnswer('');
+      setRevealed(false);
+      setIsCorrect(null);
+      setFeedback('');
+      timer.start();
+    } catch (e) {
+      console.error(e);
+      setFeedback('Error loading question. ' + e.message);
+    }
+  };
+
+  const startGame = () => {
+    const qCount = parseInt(numQuestions) || 10;
+    setNumQuestions(String(qCount));
+    setStarted(true);
+    setFinished(false);
+    setRound(1);
+    setScore(0);
+    setResults([]);
+    loadQuestion();
+  };
+
+  // CoordinateGrid handles clicks internally
+
+  const handleCheck = async () => {
+    if (revealed) return;
+    if (currentQ?.type === 'coord' && !dartPos) return;
+    if (currentQ?.type !== 'coord' && !textAnswer.trim()) return;
+
+    const timeTaken = timer.stop();
+    setRevealed(true);
+    
+    try {
+      const payload = {
+        ...currentQ,
+        userAnswer: currentQ.type === 'coord' ? `(${dartPos.x}, ${dartPos.y})` : textAnswer
+      };
+      const r = await fetch('/coordgeom-api/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await r.json();
+      
+      const correct = data.correct;
+      setIsCorrect(correct);
+      setFeedback(data.message + (correct ? ` ${data.display} is correct!` : ` The answer was ${data.display}.`));
+      if (correct) setScore(s => s + 1);
+      
+      setResults(prev => [...prev, {
+        question: currentQ.prompt,
+        userAnswer: payload.userAnswer,
+        correctAnswer: data.display,
+        correct,
+        time: timeTaken
+      }]);
+    } catch (e) {
+      console.error(e);
+      setFeedback('Error checking answer.');
+    }
+  };
+
+  const handleSolve = () => {
+    if (revealed || !currentQ) return;
+    timer.stop();
+    setRevealed(true);
+    setIsCorrect(false);
+    setFeedback(`Solution: The answer is ${currentQ.display}.`);
+    setResults(prev => [...prev, {
+      question: currentQ.prompt,
+      userAnswer: '—',
+      correctAnswer: currentQ.display,
+      correct: false,
+      time: 0
+    }]);
+  };
+
+  const nextQuestion = () => {
+    if (round >= Number(numQuestions)) {
+      setFinished(true);
+    } else {
+      setRound(r => r + 1);
+      loadQuestion();
+    }
+  };
+
+  if (!started) {
+    const diffLabels = { easy: 'Easy — Foundations', medium: 'Medium — Lengths', hard: 'Hard — Slopes & Eqs', extrahard: 'Extra Hard — Advanced' };
+    return (
+      <div style={{ minHeight: '100vh', background: '#181512', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{
+          background: '#2D2520', border: '1.5px solid #4A4038', borderRadius: '28px',
+          boxShadow: '0 20px 40px rgba(0,0,0,.45)', padding: '48px 40px', maxWidth: '720px', width: '100%',
+          textAlign: 'center', position: 'relative'
+        }}>
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '24px', left: '24px', background: 'transparent',
+            border: '1px solid #5B5048', borderRadius: '6px', padding: '6px 14px',
+            color: '#A89C93', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+          }}>← Home</button>
+
+          <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, fontSize: '48px', color: '#F4F1ED', margin: '0 0 12px', lineHeight: 1.1 }}>
+            Coordinate Geometry
+          </h1>
+          <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 40px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            Choose a level and solve coordinate geometry challenges
+          </p>
+          <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 24px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            Practice coordinate geometry!
+          </p>
+
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+              Select Difficulty:
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {['easy', 'medium', 'hard', 'extrahard'].map(d => (
+                <button key={d} onClick={() => setDifficulty(d)} style={{
+                  background: difficulty === d ? '#F08C46' : 'transparent',
+                  border: difficulty === d ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: difficulty === d ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
+                  {diffLabels[d]}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <label style={{ color: '#988D84', fontSize: '0.85rem', margin: '0 0 12px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              How many questions?
+            </label>
+            <input type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} style={{
+              background: '#463B34', border: '1px solid #5B5048', borderRadius: '6px',
+              padding: '10px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem',
+              width: '100px', textAlign: 'center', outline: 'none'
+            }} placeholder="10" />
+          </div>
+
+          <button onClick={startGame} style={{
+            background: '#F08C46', border: 'none', borderRadius: '6px',
+            padding: '10px 24px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer'
+          }}>
+            Start Quiz
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (finished) {
+    return (
+      <QuizLayout title="Coordinate Geometry" onBack={onBack}>
+        <ResultsView score={score} total={Number(numQuestions)} results={results} onRetry={startGame} />
+      </QuizLayout>
+    );
+  }
+
+  return (
+    <QuizLayout title="Coordinate Geometry" onBack={onBack}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, padding: '0 4px' }}>
+          <span style={{ color: 'var(--clr-muted)', fontSize: '0.85rem' }}>Round {round} / {numQuestions}</span>
+          <span style={{ fontWeight: 700, color: 'var(--clr-accent)' }}>Score: {score}</span>
+        </div>
+
+        <h3 className="prompt-text">{currentQ?.prompt}</h3>
+
+        <div style={{ margin: '20px auto', display: 'flex', justifyContent: 'center' }}>
+          <CoordinateGrid 
+            points={currentQ?.points || []}
+            onClick={currentQ?.type === 'coord' && !revealed ? (pos) => setDartPos(pos) : undefined}
+            cursorType={currentQ?.type === 'coord' ? 'crosshair' : 'default'}
+            userTarget={dartPos}
+            revealedTarget={revealed && !isCorrect && currentQ?.type === 'coord' ? { x: currentQ.ansX, y: currentQ.ansY } : null}
+            connectPoints={true}
+            width={350}
+            height={350}
+          />
+        </div>
+
+        {currentQ?.type === 'coord' ? (
+          dartPos && !revealed && (
+            <p style={{ color: 'var(--clr-muted)', fontSize: '0.85rem', margin: '8px 0 0' }}>
+              Selected Point: ({dartPos.x}, {dartPos.y})
+            </p>
+          )
+        ) : (
+          <div style={{ marginTop: 20 }}>
+            <input 
+              type="text" 
+              className="answer-input" 
+              placeholder={currentQ?.type === 'equation' ? 'e.g. y=-3/4x+2' : currentQ?.type === 'fraction' ? 'e.g. -3/4' : 'e.g. 13'} 
+              value={textAnswer}
+              onChange={e => !revealed && setTextAnswer(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCheck(); }}
+              disabled={revealed}
+            />
+          </div>
+        )}
+
+        <div className="button-row" style={{ marginTop: 20, justifyContent: 'center', gap: '10px' }}>
+          {!revealed ? (
+            <>
+              <button className="btn" onClick={handleCheck} disabled={currentQ?.type === 'coord' ? !dartPos : !textAnswer.trim()}>
+                Check Answer
+              </button>
+              <button className="btn" onClick={handleSolve} style={{ background: 'transparent', border: '1px solid var(--clr-border)', color: 'var(--clr-muted)' }}>
+                💡 Solve
+              </button>
+            </>
+          ) : (
+            <button className="btn" onClick={nextQuestion}>
+              Next Question
+            </button>
+          )}
+        </div>
+
+        {revealed && (
+          <div style={{ marginTop: 20 }}>
+            {renderFeedback(feedback, isCorrect)}
+          </div>
+        )}
+      </div>
+    </QuizLayout>
+  );
 }
 
 function DartBoardApp({ onBack }) {
@@ -34588,7 +34853,7 @@ function App() {
     sets: SetsApp,                 // Sets & Venn diagrams
     trig: TrigApp,                 // Trigonometry
     ineq: IneqApp,                 // Inequalities
-    coordgeom: CoordGeomApp,       // Coordinate Geometry
+    coordgeom: CoordGeomInteractiveApp,       // Coordinate Geometry
     prob: ProbApp,                 // Probability
     stats: StatsApp,               // Statistics
     matrix: MatrixApp,             // Matrices
@@ -34691,6 +34956,7 @@ function Home({ onSelect }) {
     { key: 'visual-math-lab-redux', name: 'Visual Math Lab', subtitle: 'Multiplication & Division through play', color: 'purple' },
     { key: 'addition', name: 'Addition', subtitle: '20-question addition practice', color: 'blue' },
     { key: 'mensuration-lab', name: '🔷 Mensuration', subtitle: 'Geometry & Shape Puzzles', color: 'green' },
+    { key: 'coordgeom', name: '🚀 Coordinate Geometry', subtitle: 'Discovery Sandbox Mode', color: 'blue' },
   ]
 
   // All regular quiz apps sorted alphabetically by name
@@ -34709,7 +34975,6 @@ function Home({ onSelect }) {
     { key: 'complex', name: 'Complex Numbers', subtitle: 'Add, multiply, modulus', color: 'blue' },
     { key: 'congruence', name: 'Congruence', subtitle: 'SSS, SAS, ASA, RHS', color: 'green' },
     { key: 'conics', name: 'Conic Sections', subtitle: 'Circle, parabola, ellipse, hyperbola', color: 'purple' },
-    { key: 'coordgeom', name: 'Coord. Geometry', subtitle: 'Midpoint, distance, gradient', color: 'blue' },
     { key: 'decimals', name: 'Decimals', subtitle: 'Add, subtract, multiply, divide', color: 'blue' },
     { key: 'diff', name: 'Differentiation', subtitle: 'Power rule, turning points', color: 'purple' },
     { key: 'diffeq', name: 'Differential Eq.', subtitle: 'Order, degree, solve DEs', color: 'green' },
@@ -35490,55 +35755,99 @@ function AdditionApp({ onBack }) {
   const diffLabels = { easy: 'Easy — 1 digit', medium: 'Medium — 2 digits', hard: 'Hard — 3 digits', extrahard: 'Extra Hard — 4 digits' }
   const curAdaptLevel = adaptiveLevel(adaptScore)
 
-  return (
-    <QuizLayout title="Addition" subtitle="Choose a level and solve addition questions" onBack={onBack} timer={started && !finished ? timer : null}>
-      {!started && !finished && <div className="welcome-box">
-        <p className="welcome-text">Practice addition!</p>
-        
-        {/* Mode Selector UI */}
-        <div style={{ marginBottom: '18px', textAlign: 'center' }}>
-          <p style={{ fontWeight: 600, marginBottom: '8px' }}>Select Game Mode:</p>
-          <div className="checkbox-group" style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <label className={`checkbox-pill${additionMode === 'standard' ? ' active' : ''}`}>
-              <input type="radio" name="addition-mode" checked={additionMode === 'standard'} onChange={() => setAdditionMode('standard')} />
-              🔢 Standard Quiz
-            </label>
-            <label className={`checkbox-pill${additionMode === 'counting' ? ' active' : ''}`}>
-              <input type="radio" name="addition-mode" checked={additionMode === 'counting'} onChange={() => setAdditionMode('counting')} />
-              🍎 Visual Counting
-            </label>
-            <label className={`checkbox-pill${additionMode === 'scale' ? ' active' : ''}`}>
-              <input type="radio" name="addition-mode" checked={additionMode === 'scale'} onChange={() => setAdditionMode('scale')} />
-              ⚖️ Balance Scale
-            </label>
-          </div>
-        </div>
+  if (!started && !finished) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#181512', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{
+          background: '#2D2520', border: '1.5px solid #4A4038', borderRadius: '28px',
+          boxShadow: '0 20px 40px rgba(0,0,0,.45)', padding: '48px 40px', maxWidth: '720px', width: '100%',
+          textAlign: 'center', position: 'relative'
+        }}>
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '24px', left: '24px', background: 'transparent',
+            border: '1px solid #5B5048', borderRadius: '6px', padding: '6px 14px',
+            color: '#A89C93', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+          }}>← Home</button>
 
-        {/* Difficulty Selection */}
-        <p style={{ fontWeight: 600, marginBottom: '8px' }}>Select Difficulty:</p>
-        <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-          {['easy', 'medium', 'hard', ...(additionMode === 'standard' ? ['extrahard'] : [])].map(d => (
-            <label key={d} className={`checkbox-pill${!isAdaptive && difficulty === d ? ' active' : ''}`}>
-              <input type="radio" name="addition-diff" checked={!isAdaptive && difficulty === d} onChange={() => { setDifficulty(d); setIsAdaptive(false) }} />
-              {diffLabels[d]}
+          <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, fontSize: '48px', color: '#F4F1ED', margin: '0 0 12px', lineHeight: 1.1 }}>
+            Addition
+          </h1>
+          <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 24px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            Practice addition!
+          </p>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+              Select Game Mode:
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {[['standard', '🔢 Standard Quiz'], ['counting', '🍎 Visual Counting'], ['scale', '⚖️ Balance Scale']].map(([val, lbl]) => (
+                <button key={val} onClick={() => setAdditionMode(val)} style={{
+                  background: additionMode === val ? '#F08C46' : 'transparent',
+                  border: additionMode === val ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: additionMode === val ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+              Select Difficulty:
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {['easy', 'medium', 'hard', ...(additionMode === 'standard' ? ['extrahard'] : [])].map(d => (
+                <button key={d} onClick={() => { setDifficulty(d); setIsAdaptive(false); }} style={{
+                  background: (!isAdaptive && difficulty === d) ? '#F08C46' : 'transparent',
+                  border: (!isAdaptive && difficulty === d) ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: (!isAdaptive && difficulty === d) ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
+                  {diffLabels[d]}
+                </button>
+              ))}
+            </div>
+            {additionMode === 'standard' && (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button onClick={() => setIsAdaptive(true)} style={{
+                  background: isAdaptive ? '#F08C46' : 'transparent',
+                  border: isAdaptive ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: isAdaptive ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
+                  Adaptive
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <label style={{ color: '#988D84', fontSize: '0.85rem', margin: '0 0 12px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              How many questions?
             </label>
-          ))}
-          {additionMode === 'standard' && (
-            <label className={`checkbox-pill${isAdaptive ? ' active' : ''}`} style={isAdaptive ? { background: 'linear-gradient(135deg, #4caf50, #ff9800, #f44336, #9c27b0)', color: '#fff', border: 'none' } : {}}>
-              <input type="radio" name="addition-diff" checked={isAdaptive} onChange={() => setIsAdaptive(true)} />
-              Adaptive
-            </label>
-          )}
+            <input type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} style={{
+              background: '#463B34', border: '1px solid #5B5048', borderRadius: '6px',
+              padding: '10px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem',
+              width: '100px', textAlign: 'center', outline: 'none'
+            }} placeholder={String(DEFAULT_TOTAL)} />
+          </div>
+
+          <button onClick={startQuiz} style={{
+            background: '#F08C46', border: 'none', borderRadius: '6px',
+            padding: '10px 24px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer'
+          }}>
+            Start Quiz
+          </button>
         </div>
-        {isAdaptive && additionMode === 'standard' && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>Starts easy and smoothly adjusts to your level as you answer.</p>}
-        
-        {/* Question Count Input */}
-        <div className="question-count-row">
-          <label className="question-count-label">How many questions?</label>
-          <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} placeholder={String(DEFAULT_TOTAL)} />
-        </div>
-        <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-      </div>}
+      </div>
+    )
+  }
+
+  return (
+    <QuizLayout title="Addition" onBack={onBack} timer={timer}>
 
       {started && !finished && <>
         {/* Progress Display */}
@@ -35624,7 +35933,7 @@ function AdditionApp({ onBack }) {
 
           return (
             <div style={{ margin: '15px 0' }}>
-              <h3 style={{ textAlign: 'center', margin: '0 0 10px 0' }}>
+              <h3 style={{ textAlign: 'center', margin: '-10px 0 180px 0', position: 'relative', zIndex: 10, fontSize: '1.4rem' }}>
                 Left Side Weight: {question.a} + {question.b} = {targetTotal}
               </h3>
 
@@ -39042,32 +39351,83 @@ function makeQuizApp({ title, subtitle, apiPath, diffLabels, placeholders, tip, 
 
     const curAdaptLevel = adaptiveLevel(adaptScore)
 
-    return (
-      <QuizLayout title={title} subtitle={subtitle} onBack={onBack} timer={started && !finished ? timer : null}>
-        {!started && !finished && <div className="welcome-box">
-          <p className="welcome-text">Practice {title.toLowerCase()}!</p>
-          {tip && <p style={{ fontSize: '0.85rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>{tip}</p>}
-          <div className="checkbox-group" style={{ marginBottom: '12px' }}>
-            {diffs.map(d => (
-              <label key={d} className={`checkbox-pill${!isAdaptive && difficulty === d ? ' active' : ''}`}>
-                <input type="radio" name={`${apiPath}-diff`} checked={!isAdaptive && difficulty === d} onChange={() => { setDifficulty(d); setIsAdaptive(false) }} />
-                {diffLabels[d]}
+    if (!started && !finished) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#181512', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{
+            background: '#2D2520', border: '1.5px solid #4A4038', borderRadius: '28px',
+            boxShadow: '0 20px 40px rgba(0,0,0,.45)', padding: '48px 40px', maxWidth: '720px', width: '100%',
+            textAlign: 'center', position: 'relative'
+          }}>
+            <button onClick={onBack} style={{
+              position: 'absolute', top: '24px', left: '24px', background: 'transparent',
+              border: '1px solid #5B5048', borderRadius: '6px', padding: '6px 14px',
+              color: '#A89C93', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+            }}>← Home</button>
+
+            <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, fontSize: '48px', color: '#F4F1ED', margin: '0 0 12px', lineHeight: 1.1 }}>
+              {title}
+            </h1>
+            <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 40px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              {subtitle}
+            </p>
+            <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 24px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              Practice {title.toLowerCase()}!
+            </p>
+            {tip && <p style={{ fontSize: '0.85rem', color: '#A89C93', marginBottom: '16px' }}>{tip}</p>}
+            
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+                Select Difficulty:
+              </h3>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+                {diffs.map(d => (
+                  <button key={d} onClick={() => { setDifficulty(d); setIsAdaptive(false); }} style={{
+                    background: (!isAdaptive && difficulty === d) ? '#F08C46' : 'transparent',
+                    border: (!isAdaptive && difficulty === d) ? '1px solid #F08C46' : '1px solid #5B5048',
+                    borderRadius: '50px', padding: '8px 16px',
+                    color: (!isAdaptive && difficulty === d) ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                  }}>
+                    {diffLabels[d]}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <button onClick={() => setIsAdaptive(true)} style={{
+                  background: isAdaptive ? '#F08C46' : 'transparent',
+                  border: isAdaptive ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: isAdaptive ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
+                  Adaptive
+                </button>
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <label style={{ color: '#988D84', fontSize: '0.85rem', margin: '0 0 12px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+                How many questions?
               </label>
-            ))}
-            <label className={`checkbox-pill${isAdaptive ? ' active' : ''}`} style={isAdaptive ? { background: 'linear-gradient(135deg, #4caf50, #ff9800, #f44336, #9c27b0)', color: '#fff', border: 'none' } : {}}>
-              <input type="radio" name={`${apiPath}-diff`} checked={isAdaptive} onChange={() => setIsAdaptive(true)} />
-              Adaptive
-            </label>
+              <input type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} style={{
+                background: '#463B34', border: '1px solid #5B5048', borderRadius: '6px',
+                padding: '10px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem',
+                width: '100px', textAlign: 'center', outline: 'none'
+              }} placeholder={String(DEFAULT_TOTAL)} />
+            </div>
+
+            <button onClick={startQuiz} style={{
+              background: '#F08C46', border: 'none', borderRadius: '6px',
+              padding: '10px 24px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer'
+            }}>
+              Start Quiz
+            </button>
           </div>
-          {isAdaptive && <p style={{ fontSize: '0.82rem', color: 'var(--clr-dim)', marginBottom: '8px' }}>
-            Starts easy and smoothly adjusts to your level as you answer.
-          </p>}
-          <div className="question-count-row">
-            <label className="question-count-label">How many questions?</label>
-            <input className="answer-input question-count-input" type="text" value={numQuestions} onChange={e => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} />
-          </div>
-          <div className="button-row"><button onClick={startQuiz}>Start Quiz</button></div>
-        </div>}
+        </div>
+      )
+    }
+
+    return (
+      <QuizLayout title={title} subtitle={subtitle} onBack={onBack} timer={timer}>
         {started && !finished && <>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.3rem' }}>
             <div className="progress-pill center">Question {questionNumber}/{totalQ}</div>
@@ -49147,7 +49507,6 @@ function QuizLayout({ title, subtitle, onBack, children, timer }) {
         {timer && <div className="timer-pill">{timer.elapsed}s</div>}
       </div>
       <h1>{title}</h1>
-      <p className="subtitle">{subtitle}</p>
       {children}
     </>
   )
@@ -49227,7 +49586,11 @@ function GenericLabApp({ title, subtitle, endpoint, onBack, renderQuestionCustom
     setIsCorrect(data.correct);
     if (data.correct) setScore(s => s + 1);
     
-    setFeedback(data.correct ? `Correct! The answer is ${data.correctAnswer}.` : `Incorrect. The correct answer is ${data.correctAnswer}.`);
+    const explanationText = question.hint ? ` (${question.hint})` : '';
+    setFeedback(data.correct 
+      ? `Correct! The answer is ${data.correctAnswer}.${explanationText}` 
+      : `Incorrect. The correct answer is ${data.correctAnswer}.${explanationText}`
+    );
     
     setResults(prev => [...prev, {
       question: question.prompt,
@@ -49249,7 +49612,8 @@ function GenericLabApp({ title, subtitle, endpoint, onBack, renderQuestionCustom
     });
     const data = await res.json();
     setIsCorrect(false);
-    setFeedback(`Solution: ${data.correctAnswer}`);
+    const explanationText = question.hint ? ` (${question.hint})` : '';
+    setFeedback(`Solution: ${data.correctAnswer}.${explanationText}`);
     setResults(prev => [...prev, {
       question: question.prompt,
       userAnswer: '—',
@@ -49294,72 +49658,64 @@ function GenericLabApp({ title, subtitle, endpoint, onBack, renderQuestionCustom
 
   if (!started && !finished) {
     return (
-      <div style={{ minHeight:'100vh', background:C.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', padding:'24px 16px 48px', position:'relative', fontFamily:FONT }}>
-        {/* Floating Background */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-          {itemsRef.current.map(s => (
-            <motion.div key={s.id}
-              style={{ position:'absolute', left:`${s.x}%`, top:`${s.y}%`, fontSize:s.size, color:'rgba(249,115,22,0.04)', fontFamily:FONT, fontWeight:700, userSelect:'none' }}
-              animate={{ y:[0,-28,0], opacity:[0.3,0.8,0.3] }}
-              transition={{ duration:s.dur, delay:s.delay, repeat:Infinity, ease:'easeInOut' }}>
-              {s.sym}
-            </motion.div>
-          ))}
-        </div>
+      <div style={{ minHeight: '100vh', background: '#181512', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{
+          background: '#2D2520', border: '1.5px solid #4A4038', borderRadius: '28px',
+          boxShadow: '0 20px 40px rgba(0,0,0,.45)', padding: '48px 40px', maxWidth: '720px', width: '100%',
+          textAlign: 'center', position: 'relative'
+        }}>
+          <button onClick={onBack} style={{
+            position: 'absolute', top: '24px', left: '24px', background: 'transparent',
+            border: '1px solid #5B5048', borderRadius: '6px', padding: '6px 14px',
+            color: '#A89C93', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+          }}>← Home</button>
 
-        <motion.div key="start" 
-          initial={{ opacity:0, y:28, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }}
-          transition={{ type:'spring', stiffness:200, damping:20 }}
-          style={{ textAlign:'center', marginTop:'8vh', background: C.card, borderRadius: '28px', padding: '40px 44px', border: `1px solid ${C.border}`, boxShadow: '0 25px 60px rgba(0,0,0,0.65)', maxWidth: '650px', width: '100%', zIndex: 10 }}>
-            <motion.div initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:300, delay:0.2 }}
-              style={{ fontSize:'4.5rem', marginBottom:'10px' }}>✨</motion.div>
-            <h1 style={{ fontSize:'2.9rem', fontWeight:900, margin:'0 0 8px',
-              background:`linear-gradient(135deg,${C.orange},${C.orange2})`,
-              WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
-              {title}
-            </h1>
-            <p style={{ color:C.muted, fontSize:'1.05rem', margin:'0 0 36px' }}>{subtitle}</p>
-
-            <div style={{ display:'flex', gap:'20px', justifyContent:'center', flexWrap:'wrap', marginBottom:'32px' }}>
-              {[['⭐ Easy','easy'],['⭐⭐ Medium','medium'],['⭐⭐⭐ Hard','hard']].map(([lbl,val])=>(
-                <motion.button key={val} onClick={() => setDifficulty(val)}
-                  whileHover={{ scale:1.05, y:-2 }} whileTap={{ scale:0.97 }}
-                  style={{ background: difficulty===val?`linear-gradient(135deg,${C.orange},${C.orange2})`:'rgba(255,255,255,0.05)',
-                    border: difficulty===val?'none':`2px solid ${C.border}`, borderRadius:'14px', padding:'14px 26px',
-                    color: difficulty===val?'white':C.muted, fontFamily:FONT, fontWeight:700, fontSize:'0.98rem', cursor:'pointer',
-                    boxShadow: difficulty===val?'0 8px 24px rgba(249,115,22,0.35)':'none', transition:'all 0.2s' }}>
+          <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontWeight: 700, fontSize: '48px', color: '#F4F1ED', margin: '0 0 12px', lineHeight: 1.1 }}>
+            {title.replace('🔷 ', '')}
+          </h1>
+          <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 40px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            {subtitle}
+          </p>
+          <p style={{ color: '#988D84', fontSize: '0.9rem', margin: '0 0 24px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+            Practice {title.toLowerCase().replace('🔷 ', '')}!
+          </p>
+          
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
+              Select Difficulty:
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '12px' }}>
+              {[['Easy','easy'], ['Medium','medium'], ['Hard','hard']].map(([lbl, val]) => (
+                <button key={val} onClick={() => setDifficulty(val)} style={{
+                  background: difficulty === val ? '#F08C46' : 'transparent',
+                  border: difficulty === val ? '1px solid #F08C46' : '1px solid #5B5048',
+                  borderRadius: '50px', padding: '8px 16px',
+                  color: difficulty === val ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}>
                   {lbl}
-                </motion.button>
+                </button>
               ))}
             </div>
+          </div>
+          
+          <div style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <label style={{ color: '#988D84', fontSize: '0.85rem', margin: '0 0 12px', fontFamily: 'Inter, sans-serif', fontWeight: 400 }}>
+              How many questions?
+            </label>
+            <input type="text" value={numQuestions} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setNumQuestions(v) }} style={{
+              background: '#463B34', border: '1px solid #5B5048', borderRadius: '6px',
+              padding: '10px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem',
+              width: '100px', textAlign: 'center', outline: 'none'
+            }} placeholder="5" />
+          </div>
 
-            <div style={{ display:'flex', gap:'10px', justifyContent:'center', flexWrap:'wrap', marginBottom:'40px' }}>
-              {['5','10','15','20', '25'].map(n=>(
-                <motion.button key={n} onClick={() => setNumQuestions(n)}
-                  whileHover={{ scale:1.06 }} whileTap={{ scale:0.95 }}
-                  style={{ background: numQuestions===n?'rgba(249,115,22,0.18)':'rgba(255,255,255,0.05)',
-                    border: numQuestions===n?`2px solid ${C.orange}`:`2px solid ${C.border}`,
-                    borderRadius:'12px', padding:'10px 20px',
-                    color: numQuestions===n?C.orange:C.muted, fontFamily:FONT, fontWeight:700, fontSize:'0.98rem', cursor:'pointer' }}>
-                  {n} Questions
-                </motion.button>
-              ))}
-            </div>
-
-            <div style={{ display:'flex', gap:'14px', justifyContent:'center' }}>
-              <motion.button onClick={startQuiz} whileHover={{ scale:1.05, boxShadow:'0 16px 40px rgba(249,115,22,0.5)' }} whileTap={{ scale:0.97 }}
-                style={{ background:`linear-gradient(135deg,${C.orange},${C.orange2})`, border:'none', borderRadius:'18px',
-                  padding:'18px 48px', color:'white', fontFamily:FONT, fontWeight:800, fontSize:'1.2rem', cursor:'pointer',
-                  boxShadow:'0 10px 28px rgba(249,115,22,0.35)' }}>
-                Start Lab 🚀
-              </motion.button>
-              <motion.button onClick={onBack} whileHover={{ scale:1.03 }} whileTap={{ scale:0.97 }}
-                style={{ background:'rgba(255,255,255,0.05)', border:`2px solid ${C.border}`, borderRadius:'18px',
-                  padding:'18px 26px', color:C.muted, fontFamily:FONT, fontWeight:700, fontSize:'1rem', cursor:'pointer' }}>
-                ← Back
-              </motion.button>
-            </div>
-        </motion.div>
+          <button onClick={startQuiz} style={{
+            background: '#F08C46', border: 'none', borderRadius: '6px',
+            padding: '10px 24px', color: '#FFF', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer'
+          }}>
+            Start Quiz
+          </button>
+        </div>
       </div>
     );
   }
@@ -49604,7 +49960,7 @@ function MensurationLabApp({ onBack }) {
 
     // ── COMPARE AREA ──────────────────────────────────────────────────────
     if (q.template === 'compare_area') {
-      const scale = 28;
+      const scale = 36;
       return (
         <div className="men-canvas" style={{ flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', gap: '30px', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -49639,15 +49995,15 @@ function MensurationLabApp({ onBack }) {
     // ── RECT VS SQUARE ────────────────────────────────────────────────────
     if (q.template === 'rect_vs_square') {
       const isSquare = q.w === q.h;
-      const scale = Math.min(30, 160 / Math.max(q.w, q.h));
+      const scale = Math.min(45, 200 / Math.max(q.w, q.h));
       const rw = q.w * scale; const rh = q.h * scale;
-      const ox = (240 - rw) / 2; const oy = (180 - rh) / 2;
+      const ox = (280 - rw) / 2; const oy = (220 - rh) / 2;
       return (
         <div className="men-canvas" style={{ flexDirection: 'column', gap: '20px' }}>
-          <svg width="240" height="180" style={{ overflow: 'visible' }}>
+          <svg width="280" height="220" style={{ overflow: 'visible' }}>
             <defs>
               <linearGradient id="rectGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#667EEA"/><stop offset="100%" stopColor="#764BA2"/>
+                <stop offset="0%" stopColor="#F6D365"/><stop offset="100%" stopColor="#FDA085"/>
               </linearGradient>
             </defs>
             <rect x={ox} y={oy} width={rw} height={rh} fill="url(#rectGrad)" rx="8" className="men-rect-pulse"/>
@@ -49675,7 +50031,7 @@ function MensurationLabApp({ onBack }) {
 
     // ── TRIANGLE AREA ──────────────────────────────────────────────────────
     if (q.template === 'triangle_area') {
-      const scale = Math.min(20, 160 / Math.max(q.base, q.height));
+      const scale = Math.min(45, 200 / Math.max(q.base, q.height));
       const bPx = q.base * scale; const hPx = q.height * scale;
       const svgW = bPx + 80; const svgH = hPx + 70;
       const ox = 40; const oy = 30;
@@ -49689,10 +50045,14 @@ function MensurationLabApp({ onBack }) {
               </linearGradient>
             </defs>
             <polygon points={pts} fill="url(#triGrd)" stroke="white" strokeWidth="3" className="men-rect-pulse"/>
-            <line x1={ox+bPx/2} y1={oy} x2={ox+bPx/2} y2={oy+hPx} stroke="#553C9A" strokeWidth="2" strokeDasharray="5 3"/>
-            <path d={`M ${ox+bPx/2-7} ${oy+hPx} L ${ox+bPx/2-7} ${oy+hPx-7} L ${ox+bPx/2} ${oy+hPx-7}`} fill="none" stroke="#553C9A" strokeWidth="1.5"/>
-            <text x={ox+bPx/2+10} y={oy+hPx/2} fill="#553C9A" fontWeight="bold" fontSize="13">h={q.height}</text>
-            <text x={ox+bPx/2} y={oy+hPx+22} textAnchor="middle" fill="#553C9A" fontWeight="bold" fontSize="13">base={q.base}</text>
+            <line x1={ox+bPx/2} y1={oy} x2={ox+bPx/2} y2={oy+hPx} stroke="#2D2520" strokeWidth="2.5" strokeDasharray="5 3" opacity="0.85"/>
+            <path d={`M ${ox+bPx/2-7} ${oy+hPx} L ${ox+bPx/2-7} ${oy+hPx-7} L ${ox+bPx/2} ${oy+hPx-7}`} fill="none" stroke="#2D2520" strokeWidth="1.5" opacity="0.85"/>
+            {/* Height Label Pill */}
+            <rect x={ox+bPx/2+8} y={oy+hPx/2-12} width="52" height="22" rx="6" fill="#2D2520" stroke="#4A4038" strokeWidth="1.5" />
+            <text x={ox+bPx/2+34} y={oy+hPx/2+4} textAnchor="middle" fill="#F4F1ED" fontWeight="bold" fontSize="13">h={q.height}</text>
+            {/* Base Label Pill */}
+            <rect x={ox+bPx/2-38} y={oy+hPx+14} width="76" height="22" rx="6" fill="#2D2520" stroke="#4A4038" strokeWidth="1.5" />
+            <text x={ox+bPx/2} y={oy+hPx+30} textAnchor="middle" fill="#F4F1ED" fontWeight="bold" fontSize="13">base={q.base}</text>
           </svg>
           <div className="men-options-grid">
             {q.options?.map(opt => (
@@ -49719,8 +50079,8 @@ function MensurationLabApp({ onBack }) {
       return (
         <div className="men-canvas" style={{ flexDirection: 'column', gap: '20px' }}>
           <svg width="220" height="160" style={{ overflow: 'visible' }}>
-            <line x1={cx} y1={cy} x2={cx+r} y2={cy} stroke="#2D3748" strokeWidth="4" strokeLinecap="round"/>
-            <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="#553C9A" strokeWidth="4" strokeLinecap="round"/>
+            <line x1={cx} y1={cy} x2={cx+r} y2={cy} stroke="#988D84" strokeWidth="4.5" strokeLinecap="round"/>
+            <line x1={cx} y1={cy} x2={x2} y2={y2} stroke="#F08C46" strokeWidth="4.5" strokeLinecap="round"/>
             <path d={`M ${cx+arcR} ${cy} A ${arcR} ${arcR} 0 ${largeArc} 0 ${ax} ${ay}`} fill="none" stroke={arcColor} strokeWidth="5"/>
             <text x={cx+arcR+20} y={cy-16} fill={arcColor} fontWeight="bold" fontSize="28">{deg}°</text>
             {deg === 90 && <rect x={cx} y={cy-20} width="20" height="20" fill="none" stroke="#4ECDC4" strokeWidth="3"/>}
@@ -49782,21 +50142,27 @@ function MensurationLabApp({ onBack }) {
             <svg width="180" height="140" style={{ overflow: 'visible' }}>
               <defs>
                 <linearGradient id="misGrd" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#667EEA"/><stop offset="100%" stopColor="#764BA2"/>
+                  <stop offset="0%" stopColor="#F6D365"/><stop offset="100%" stopColor="#FDA085"/>
                 </linearGradient>
               </defs>
               <rect x="20" y="20" width="140" height="100" fill="url(#misGrd)" rx="8" opacity="0.8"/>
               <text x="90" y="75" textAnchor="middle" fill="white" fontWeight="bold" fontSize="18">Area={q.area}</text>
               <text x="90" y="12" textAnchor="middle" fill="#FF7E67" fontWeight="bold" fontSize="16">? units</text>
-              <text x="172" y="75" textAnchor="middle" fill="#553C9A" fontWeight="bold" fontSize="15">{q.knownSide}</text>
+              {/* Rectangle Known Side Label */}
+              <text x="172" y="75" textAnchor="middle" fill="#E2E8F0" fontWeight="bold" fontSize="16" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.6)' }}>{q.knownSide}</text>
             </svg>
           ) : (
             <svg width="140" height="140" style={{ overflow: 'visible' }}>
               <rect x="20" y="20" width="100" height="100" fill="none" stroke="#6B46C1" strokeWidth="3" strokeDasharray="8 4" rx="6"/>
               {[['70','12'],['133','75'],['70','133'],['7','75']].map(([x,y],i) => (
-                <text key={i} x={x} y={y} textAnchor="middle" fill="#FF7E67" fontWeight="bold" fontSize="14">?</text>
+                <g key={i}>
+                  <circle cx={x} cy={parseInt(y)-4} r="10" fill="#2D2520" stroke="#4A4038" strokeWidth="1" />
+                  <text x={x} y={y} textAnchor="middle" fill="#FF7E67" fontWeight="bold" fontSize="13">?</text>
+                </g>
               ))}
-              <text x="70" y="78" textAnchor="middle" fill="#553C9A" fontWeight="bold" fontSize="14">P={q.perim}</text>
+              {/* Square Perimeter Label Pill */}
+              <rect x="34" y="67" width="72" height="22" rx="6" fill="#2D2520" stroke="#4A4038" strokeWidth="1.5" />
+              <text x="70" y="83" textAnchor="middle" fill="#F4F1ED" fontWeight="bold" fontSize="13">P={q.perim}</text>
             </svg>
           )}
           <div className="men-options-grid">

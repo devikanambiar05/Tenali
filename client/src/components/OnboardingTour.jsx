@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { VolumeX, Volume2 } from 'lucide-react';
 import './OnboardingTour.css';
 
 
@@ -185,7 +184,7 @@ export default function OnboardingTour({ onFinish, mode }) {
           <div className="tour-header-left">
             <h2 className="tour-title">{step.title}</h2>
             <button className="tour-mute-btn" onClick={() => setMuted(!muted)}>
-              {muted ? <><VolumeX size={16} className="inline-icon" /> Unmute</> : <><Volume2 size={16} className="inline-icon" /> Mute</>}
+              {muted ? '🔇 Unmute' : '🔊 Mute'}
             </button>
           </div>
           <span className="tour-step-count">Step {currentStep + 1} of {tourSteps.length}</span>

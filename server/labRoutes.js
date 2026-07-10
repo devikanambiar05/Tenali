@@ -122,12 +122,13 @@ router.get('/mensuration-lab/generate', (req, res) => {
     while (w1*h1 === w2*h2) { w2 = randomInt(2, max); h2 = randomInt(2, max); }
     q.prompt = `🤔 Which shape has the BIGGER area?`;
     q.shape1 = {w: w1, h: h1, label: 'A', color: '#FF7E67'};
-    q.shape2 = {w: w2, h: h2, label: 'B', color: '#6B46C1'};
+    q.shape2 = {w: w2, h: h2, label: 'B', color: '#FFD166'};
     q.options = ['Shape A', 'Shape B', 'They are Equal'];
     const a1 = w1*h1; const a2 = w2*h2;
     if (a1 > a2) q.answer = 'Shape A';
     else if (a2 > a1) q.answer = 'Shape B';
     else q.answer = 'They are Equal';
+    q.hint = `Shape A Area = ${a1} (${w1}×${h1}), Shape B Area = ${a2} (${w2}×${h2})`;
   } else if (template === 'rect_vs_square') {
     const isSquare = Math.random() > 0.5;
     const w = randomInt(2, max);
@@ -143,6 +144,7 @@ router.get('/mensuration-lab/generate', (req, res) => {
     q.prompt = `🌟 What is the name of this shape?`;
     q.sides = sides;
     q.answer = name;
+    q.hint = `A polygon with ${sides} sides is a ${name}`;
     const wrongSides = Object.keys(shapeNames).map(Number).filter(s => s !== sides);
     const picks = wrongSides.sort(() => Math.random()-0.5).slice(0, 3).map(s => shapeNames[s]);
     q.options = [...picks, name].sort(() => Math.random()-0.5);
@@ -205,6 +207,7 @@ router.get('/mensuration-lab/generate', (req, res) => {
       q.area = area;
       q.subtype = 'rect_missing';
       const ans = missingW ? w : h;
+      q.hint = missingW ? `Area ÷ Height = ${area} ÷ ${h} = ${w}` : `Area ÷ Width = ${area} ÷ ${w} = ${h}`;
       const opts = [ans-1, ans, ans+1, ans+2].filter(v=>v>0).filter((v,i,a)=>a.indexOf(v)===i).sort(()=>Math.random()-0.5).map(String);
       q.options = opts;
     } else {
@@ -214,6 +217,7 @@ router.get('/mensuration-lab/generate', (req, res) => {
       q.answer = side;
       q.perim = perim;
       q.subtype = 'square_missing';
+      q.hint = `Perimeter ÷ 4 = ${perim} ÷ 4 = ${side}`;
       const opts = [side-1, side, side+1, side+2].filter(v=>v>0).filter((v,i,a)=>a.indexOf(v)===i).sort(()=>Math.random()-0.5).map(String);
       q.options = opts;
     }
@@ -232,7 +236,13 @@ router.post('/mensuration-lab/check', (req, res) => {
 const visualTemplates = ['plant_arrays', 'frog_jumps', 'candy_sharing', 'equal_groups', 'picture_multi', 'math_machine'];
 router.get('/visual-math-lab-redux/generate', (req, res) => {
   const diff = req.query.difficulty || 'easy';
-  const template = randomChoice(visualTemplates);
+  const lastTemplate = req.query.lastTemplate;
+  
+  let pool = visualTemplates;
+  if (lastTemplate && visualTemplates.includes(lastTemplate) && visualTemplates.length > 1) {
+    pool = visualTemplates.filter(t => t !== lastTemplate);
+  }
+  const template = randomChoice(pool);
   const max = diff === 'hard' ? 9 : (diff === 'medium' ? 6 : 4);
   let q = { id: `vmr-${Date.now()}`, template };
 
@@ -262,8 +272,7 @@ router.get('/visual-math-lab-redux/generate', (req, res) => {
     const subjects = [
       { name: 'bicycles', parts: 'wheels', count: 2, icon: '🚲' },
       { name: 'traffic lights', parts: 'lights', count: 3, icon: '🚦' },
-      { name: 'dogs', parts: 'legs', count: 4, icon: '🐕' },
-      { name: 'spiders', parts: 'legs', count: 8, icon: '🕷️' }
+      { name: 'dogs', parts: 'legs', count: 4, icon: '🐕' }
     ];
     const sub = randomChoice(subjects);
     const n = randomInt(2, max);

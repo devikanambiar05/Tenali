@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, MessageCircle, Map, HelpCircle, VolumeX } from 'lucide-react';
 import './VoiceAssistant.css';
 
 export default function VoiceAssistant({ progressData, onNavigate, onStartTour }) {
@@ -75,7 +74,7 @@ export default function VoiceAssistant({ progressData, onNavigate, onStartTour }
   return (
     <div className={'voice-assistant ' + (expanded ? 'expanded ' : '') + (speaking ? 'speaking' : '')}>
       <div className="va-avatar" onClick={() => setExpanded(!expanded)}>
-        <div className="va-icon"><Bot size={24} /></div>
+        <div className="va-icon">🤖</div>
         {speaking && <div className="va-pulse"></div>}
       </div>
       
@@ -83,19 +82,19 @@ export default function VoiceAssistant({ progressData, onNavigate, onStartTour }
         <div className="va-menu">
           <h4>Tenali Guide</h4>
           <button className="va-btn" onClick={handleGuideMe}>
-            <MessageCircle size={16} className="inline-icon" /> Suggest a topic
+            🗣️ Suggest a topic
           </button>
           <button className="va-btn" onClick={() => { if (onStartTour) onStartTour(); setSpeaking(false); window.speechSynthesis.cancel(); }}>
-            <Map size={16} className="inline-icon" /> Take a tour
+            🗺️ Take a tour
           </button>
           <button className="va-btn" onClick={() => speak('Please select a quiz from the grid. Each quiz will adapt to your skill level.')}>
-            <HelpCircle size={16} className="inline-icon" /> What should I do?
+            ❓ What should I do?
           </button>
           <button className="va-btn" onClick={() => {
             window.speechSynthesis.cancel();
             setSpeaking(false);
           }}>
-            <VolumeX size={16} className="inline-icon" /> Stop talking
+            🤫 Stop talking
           </button>
         </div>
       )}

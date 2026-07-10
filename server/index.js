@@ -3823,56 +3823,118 @@ app.post('/ineq-api/check', express.json(), (req, res) => {
 app.get('/coordgeom-api/question', (req, res) => {
   const difficulty = req.query.difficulty || 'easy';
   const id = Date.now();
-
+  
   if (difficulty === 'easy') {
-    // Midpoint of two points
-    // Use even sums for clean midpoints
-    const x1 = triRand(-10, 10); const y1 = triRand(-10, 10);
-    const x2 = x1 + 2 * triRand(-5, 5); const y2 = y1 + 2 * triRand(-5, 5);
-    const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
-    const prompt = `Find the midpoint of (${x1}, ${y1}) and (${x2}, ${y2})`;
-    res.json({ id, difficulty, type: 'midpoint', prompt, ansX: mx, ansY: my, display: `(${mx}, ${my})` });
+    // Foundations: midpoint, reflection, translation
+    const subType = triPick(['midpoint', 'reflection', 'translation']);
+    
+    if (subType === 'midpoint') {
+      const x1 = triRand(-8, 8); const y1 = triRand(-8, 8);
+      const x2 = x1 + 2 * triRand(-4, 4); const y2 = y1 + 2 * triRand(-4, 4);
+      const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
+      const prompt = `Find the midpoint of (${x1}, ${y1}) and (${x2}, ${y2})`;
+      res.json({ id, difficulty, type: 'coord', prompt, ansX: mx, ansY: my, display: `(${mx}, ${my})`, points: [{x:x1, y:y1}, {x:x2, y:y2}] });
+    }
+    else if (subType === 'reflection') {
+      const axis = triPick(['x-axis', 'y-axis']);
+      const x1 = triRand(-8, 8); const y1 = triRand(-8, 8);
+      let ansX = x1, ansY = y1;
+      if (axis === 'x-axis') ansY = -y1;
+      else ansX = -x1;
+      const prompt = `Reflect (${x1}, ${y1}) across the ${axis}`;
+      res.json({ id, difficulty, type: 'coord', prompt, ansX, ansY, display: `(${ansX}, ${ansY})`, points: [{x:x1, y:y1}] });
+    }
+    else { // translation
+      const x1 = triRand(-6, 6); const y1 = triRand(-6, 6);
+      const dx = triRand(-4, 4); const dy = triRand(-4, 4);
+      const ansX = x1 + dx; const ansY = y1 + dy;
+      const vector = `<${dx}, ${dy}>`;
+      const prompt = `Translate (${x1}, ${y1}) by the vector ${vector}`;
+      res.json({ id, difficulty, type: 'coord', prompt, ansX, ansY, display: `(${ansX}, ${ansY})`, points: [{x:x1, y:y1}] });
+    }
   }
   else if (difficulty === 'medium') {
-    // Distance between two points (use Pythagorean triples for clean answers)
+    // Lengths: distance, distance to origin
+    const subType = triPick(['distance', 'distance_origin']);
     const triples = [[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15]];
-    const [dx, dy, dist] = triPick(triples);
-    const x1 = triRand(-5, 5); const y1 = triRand(-5, 5);
-    const sx = triPick([1, -1]); const sy = triPick([1, -1]);
-    const x2 = x1 + sx * dx; const y2 = y1 + sy * dy;
-    const prompt = `Find the distance between (${x1}, ${y1}) and (${x2}, ${y2})`;
-    res.json({ id, difficulty, type: 'distance', prompt, answer: dist, display: String(dist) });
+    
+    if (subType === 'distance_origin') {
+      const [dx, dy, dist] = triPick(triples);
+      const sx = triPick([1, -1]); const sy = triPick([1, -1]);
+      const x1 = sx * dx; const y1 = sy * dy;
+      const prompt = `Find the distance from (${x1}, ${y1}) to the origin`;
+      res.json({ id, difficulty, type: 'scalar', prompt, answer: dist, display: String(dist), points: [{x:x1, y:y1}, {x:0, y:0}] });
+    }
+    else { // distance
+      const [dx, dy, dist] = triPick(triples);
+      const x1 = triRand(-5, 5); const y1 = triRand(-5, 5);
+      const sx = triPick([1, -1]); const sy = triPick([1, -1]);
+      const x2 = x1 + sx * dx; const y2 = y1 + sy * dy;
+      const prompt = `Find the distance between (${x1}, ${y1}) and (${x2}, ${y2})`;
+      res.json({ id, difficulty, type: 'scalar', prompt, answer: dist, display: String(dist), points: [{x:x1, y:y1}, {x:x2, y:y2}] });
+    }
   }
   else if (difficulty === 'hard') {
-    // Gradient of line through two points
-    const x1 = triRand(-8, 8); const y1 = triRand(-8, 8);
+    // Slopes & Eqs: gradient, equation_line
+    const subType = triPick(['gradient', 'equation_line']);
+    
+    const x1 = triRand(-6, 6); const y1 = triRand(-6, 6);
     const dx = triRand(1, 6) * triPick([1, -1]);
-    const dy = triRand(-8, 8);
+    const dy = triRand(-6, 6);
     const x2 = x1 + dx; const y2 = y1 + dy;
     const g = gcd(Math.abs(dy), Math.abs(dx));
-    const ansNum = dy / g * (dx < 0 ? -1 : 1);
-    const ansDen = Math.abs(dx) / g;
-    const display = ansDen === 1 ? String(ansNum) : `${ansNum}/${ansDen}`;
-    const prompt = `Find the gradient of the line through (${x1}, ${y1}) and (${x2}, ${y2})`;
-    res.json({ id, difficulty, type: 'gradient', prompt, ansNum, ansDen, display });
+    const mNum = dy / g * (dx < 0 ? -1 : 1);
+    const mDen = Math.abs(dx) / g;
+    
+    if (subType === 'gradient') {
+      const display = mDen === 1 ? String(mNum) : `${mNum}/${mDen}`;
+      const prompt = `Find the gradient (slope) of the line through (${x1}, ${y1}) and (${x2}, ${y2})`;
+      res.json({ id, difficulty, type: 'fraction', prompt, ansNum: mNum, ansDen: mDen, display, points: [{x:x1, y:y1}, {x:x2, y:y2}] });
+    }
+    else { // equation_line
+      const cNum = y1 * mDen - mNum * x1;
+      const cDen = mDen; 
+      const cG = gcd(Math.abs(cNum), Math.abs(cDen));
+      const cN = cNum / cG * (cDen < 0 ? -1 : 1);
+      const cD = Math.abs(cDen) / cG;
+      
+      const mStr = mDen === 1 ? String(mNum) : (mNum < 0 ? `-${Math.abs(mNum)}/${mDen}` : `${mNum}/${mDen}`);
+      const cStr = cD === 1 ? String(cN) : (cN < 0 ? `-${Math.abs(cN)}/${cD}` : `${cN}/${cD}`);
+      let eqStr = `y=${mStr}x`;
+      if (cN > 0) eqStr += `+${cStr}`;
+      else if (cN < 0) eqStr += cStr;
+
+      const prompt = `Find the equation of the line through (${x1}, ${y1}) and (${x2}, ${y2}). Format: y=mx+c`;
+      res.json({ id, difficulty, type: 'equation', prompt, ansMNum: mNum, ansMDen: mDen, ansCNum: cN, ansCDen: cD, display: eqStr, points: [{x:x1, y:y1}, {x:x2, y:y2}] });
+    }
   }
   else {
-    // Equation of perpendicular bisector
-    const x1 = triRand(-6, 6); const y1 = triRand(-6, 6);
-    const dx = triRand(1, 4) * triPick([1, -1]);
-    const dy = triRand(1, 4) * triPick([1, -1]);
-    const x2 = x1 + 2 * dx; const y2 = y1 + 2 * dy;
-    const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
-    // Original gradient: dy/dx, perpendicular: -dx/dy
-    const perpNum = -dx;
-    const perpDen = dy;
-    const g = gcd(Math.abs(perpNum), Math.abs(perpDen));
-    const mNum = perpNum / g * (perpDen < 0 ? -1 : 1);
-    const mDen = Math.abs(perpDen) / g;
-    // y - my = m(x - mx) → y = mx/mDen - m*mx/mDen + my
-    const prompt = `Find the gradient of the perpendicular bisector of (${x1}, ${y1}) and (${x2}, ${y2})`;
-    const display = mDen === 1 ? String(mNum) : `${mNum}/${mDen}`;
-    res.json({ id, difficulty, type: 'perp_bisector', prompt, ansNum: mNum, ansDen: mDen, display });
+    // Advanced: perp_bisector, area_triangle
+    const subType = triPick(['perp_bisector', 'area_triangle']);
+    
+    if (subType === 'area_triangle') {
+      const x1 = triRand(-8, 8); const y1 = triRand(-8, 8);
+      const x2 = triRand(-8, 8); const y2 = triRand(-8, 8);
+      const x3 = triRand(-8, 8); const y3 = triRand(-8, 8);
+      const area = Math.abs((x1*(y2-y3) + x2*(y3-y1) + x3*(y1-y2)) / 2);
+      const prompt = `Find the area of the triangle with vertices (${x1}, ${y1}), (${x2}, ${y2}), (${x3}, ${y3})`;
+      res.json({ id, difficulty, type: 'scalar', prompt, answer: area, display: String(area), points: [{x:x1, y:y1}, {x:x2, y:y2}, {x:x3, y:y3}] });
+    }
+    else { // perp_bisector
+      const x1 = triRand(-6, 6); const y1 = triRand(-6, 6);
+      const dx = triRand(1, 4) * triPick([1, -1]);
+      const dy = triRand(1, 4) * triPick([1, -1]);
+      const x2 = x1 + 2 * dx; const y2 = y1 + 2 * dy;
+      
+      const perpNum = -dx;
+      const perpDen = dy;
+      const g = gcd(Math.abs(perpNum), Math.abs(perpDen));
+      const mNum = perpNum / g * (perpDen < 0 ? -1 : 1);
+      const mDen = Math.abs(perpDen) / g;
+      const prompt = `Find the gradient of the perpendicular bisector of (${x1}, ${y1}) and (${x2}, ${y2})`;
+      const display = mDen === 1 ? String(mNum) : `${mNum}/${mDen}`;
+      res.json({ id, difficulty, type: 'fraction', prompt, ansNum: mNum, ansDen: mDen, display, points: [{x:x1, y:y1}, {x:x2, y:y2}] });
+    }
   }
 });
 
@@ -3881,17 +3943,17 @@ app.post('/coordgeom-api/check', express.json(), (req, res) => {
   const userStr = (req.body.userAnswer || '').replace(/\s+/g, '').replace(/−/g, '-');
   let correct = false;
 
-  if (type === 'midpoint') {
+  if (type === 'coord') {
     const m = userStr.replace(/[()]/g, '').split(',');
     if (m.length === 2) {
       correct = parseFloat(m[0]) === req.body.ansX && parseFloat(m[1]) === req.body.ansY;
     }
   }
-  else if (type === 'distance') {
+  else if (type === 'scalar') {
     const userNum = parseFloat(userStr);
-    correct = !isNaN(userNum) && Math.abs(userNum - req.body.answer) < 0.5;
+    correct = !isNaN(userNum) && Math.abs(userNum - req.body.answer) < 0.01;
   }
-  else if (type === 'gradient' || type === 'perp_bisector') {
+  else if (type === 'fraction') {
     const { ansNum, ansDen } = req.body;
     const fracMatch = userStr.match(/^(-?\d+)\/(-?\d+)$/);
     let uNum, uDen;
@@ -3901,6 +3963,27 @@ app.post('/coordgeom-api/check', express.json(), (req, res) => {
       const us = simplifyFraction(uNum, uDen);
       const es = simplifyFraction(ansNum, ansDen);
       correct = us.num === es.num && us.den === es.den;
+    }
+  }
+  else if (type === 'equation') {
+    const { ansMNum, ansMDen, ansCNum, ansCDen } = req.body;
+    const eqMatch = userStr.match(/^y=(-?\d+(?:\/-?\d+)?)x([+-]\d+(?:\/\d+)?)?$/);
+    if (eqMatch) {
+      let mStr = eqMatch[1];
+      let cStr = eqMatch[2] || "+0";
+      
+      const parseFrac = (str) => {
+        const parts = str.replace('+','').split('/');
+        if (parts.length === 1) return { num: parseInt(parts[0]), den: 1 };
+        return simplifyFraction(parseInt(parts[0]), parseInt(parts[1]));
+      };
+      
+      const uM = parseFrac(mStr);
+      const uC = parseFrac(cStr);
+      const eM = simplifyFraction(ansMNum, ansMDen);
+      const eC = simplifyFraction(ansCNum, ansCDen);
+      
+      correct = uM.num === eM.num && uM.den === eM.den && uC.num === eC.num && uC.den === eC.den;
     }
   }
 
@@ -4650,59 +4733,66 @@ app.get('/mensur-api/question', (req, res) => {
     // Area of rectangle, triangle, or parallelogram
     const shape = triPick(['rectangle', 'triangle', 'parallelogram']);
     const a = triRand(3, 15); const b = triRand(3, 15);
-    let answer, prompt;
-    if (shape === 'rectangle') { answer = a * b; prompt = `Area of rectangle: length = ${a}, width = ${b}`; }
-    else if (shape === 'triangle') { answer = a * b / 2; prompt = `Area of triangle: base = ${a}, height = ${b}`; }
-    else { answer = a * b; prompt = `Area of parallelogram: base = ${a}, height = ${b}`; }
-    res.json({ id, difficulty, type: 'area_2d', prompt, answer, display: String(answer) });
+    let displayEq;
+    if (shape === 'rectangle') { answer = a * b; prompt = `Area of rectangle: length = ${a}, width = ${b}`; displayEq = `${a} × ${b} = ${answer}`; }
+    else if (shape === 'triangle') { answer = a * b / 2; prompt = `Area of triangle: base = ${a}, height = ${b}`; displayEq = `½ × ${a} × ${b} = ${answer}`; }
+    else { answer = a * b; prompt = `Area of parallelogram: base = ${a}, height = ${b}`; displayEq = `${a} × ${b} = ${answer}`; }
+    res.json({ id, difficulty, type: 'area_2d', prompt, answer, display: displayEq });
   }
   else if (difficulty === 'medium') {
     // Area & circumference of circle
     const r = triRand(2, 12);
     const subtype = triPick(['area', 'circumference']);
-    let answer, prompt;
+    let displayEq;
     if (subtype === 'area') {
       answer = Math.round(Math.PI * r * r * 100) / 100;
       prompt = `Area of circle with radius ${r} (to 2 d.p., use π = 3.14159...)`;
+      displayEq = `π × ${r}² = ${answer}`;
     } else {
       answer = Math.round(2 * Math.PI * r * 100) / 100;
       prompt = `Circumference of circle with radius ${r} (to 2 d.p.)`;
+      displayEq = `2 × π × ${r} = ${answer}`;
     }
-    res.json({ id, difficulty, type: 'circle', prompt, answer, display: String(answer) });
+    res.json({ id, difficulty, type: 'circle', prompt, answer, display: displayEq });
   }
   else if (difficulty === 'hard') {
     // Volume of cylinder, cone, or sphere
     const shape = triPick(['cylinder', 'cone', 'sphere']);
     const r = triRand(2, 8);
-    let answer, prompt;
+    let displayEq;
     if (shape === 'cylinder') {
       const h = triRand(3, 12);
       answer = Math.round(Math.PI * r * r * h * 100) / 100;
       prompt = `Volume of cylinder: radius = ${r}, height = ${h} (2 d.p.)`;
+      displayEq = `π × ${r}² × ${h} = ${answer}`;
     } else if (shape === 'cone') {
       const h = triRand(3, 12);
       answer = Math.round(Math.PI * r * r * h / 3 * 100) / 100;
       prompt = `Volume of cone: radius = ${r}, height = ${h} (2 d.p.)`;
+      displayEq = `⅓ × π × ${r}² × ${h} = ${answer}`;
     } else {
       answer = Math.round(4/3 * Math.PI * r * r * r * 100) / 100;
       prompt = `Volume of sphere with radius ${r} (2 d.p.)`;
+      displayEq = `⁴⁄₃ × π × ${r}³ = ${answer}`;
     }
-    res.json({ id, difficulty, type: 'volume', prompt, answer, display: String(answer) });
+    res.json({ id, difficulty, type: 'volume', prompt, answer, display: displayEq });
   }
   else {
     // Surface area of cylinder, cone, or sphere
     const shape = triPick(['cylinder', 'sphere']);
     const r = triRand(2, 8);
-    let answer, prompt;
+    let displayEq;
     if (shape === 'cylinder') {
       const h = triRand(3, 12);
       answer = Math.round(2 * Math.PI * r * (r + h) * 100) / 100;
       prompt = `Total surface area of cylinder: radius = ${r}, height = ${h} (2 d.p.)`;
+      displayEq = `2 × π × ${r} × (${r} + ${h}) = ${answer}`;
     } else {
       answer = Math.round(4 * Math.PI * r * r * 100) / 100;
       prompt = `Surface area of sphere with radius ${r} (2 d.p.)`;
+      displayEq = `4 × π × ${r}² = ${answer}`;
     }
-    res.json({ id, difficulty, type: 'surface_area', prompt, answer, display: String(answer) });
+    res.json({ id, difficulty, type: 'surface_area', prompt, answer, display: displayEq });
   }
 });
 
