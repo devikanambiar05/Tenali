@@ -59992,6 +59992,40 @@ const VachanaIcons = {
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   ),
+  numberless: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <line x1="4" y1="9" x2="20" y2="9" />
+      <line x1="4" y1="15" x2="20" y2="15" />
+      <line x1="9" y1="4" x2="9" y2="20" />
+      <line x1="15" y1="4" x2="15" y2="20" />
+    </svg>
+  ),
+  schema: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="3" y="3" width="7" height="9" />
+      <rect x="14" y="3" width="7" height="5" />
+      <rect x="14" y="12" width="7" height="9" />
+      <rect x="3" y="16" width="7" height="5" />
+    </svg>
+  ),
+  goal: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
+  ),
+  rewrite: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  ),
+  storymatch: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+    </svg>
+  ),
   header: (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--clr-accent)' }}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -60018,7 +60052,12 @@ function VachanaApp({ onBack }) {
     { id: 'traps', label: 'Reading Traps', icon: VachanaIcons.traps, desc: 'Learn to avoid linguistic math traps' },
     { id: 'jumbled', label: 'Jumbled Words', icon: VachanaIcons.jumbled, desc: 'Arrange words to match equations' },
     { id: 'paraphrase', label: 'Paraphrase Matcher', icon: VachanaIcons.paraphrase, desc: 'Identify equivalent verbal representations' },
-    { id: 'modifiers', label: 'Logical Modifiers', icon: VachanaIcons.modifiers, desc: 'Practice precise math prepositions' }
+    { id: 'modifiers', label: 'Logical Modifiers', icon: VachanaIcons.modifiers, desc: 'Practice precise math prepositions' },
+    { id: 'numberless', label: 'Numberless Problems', icon: VachanaIcons.numberless, desc: 'Visualize relationships without numeric distractions' },
+    { id: 'schema', label: 'Schema Classifier', icon: VachanaIcons.schema, desc: 'Categorize word problems by arithmetic schema' },
+    { id: 'goal', label: 'Goal-State Predictor', icon: VachanaIcons.goal, desc: 'Identify the exact target question requirements' },
+    { id: 'rewrite', label: 'Syntactic Rewriter', icon: VachanaIcons.rewrite, desc: 'Translate passive word problems to chronological active voice' },
+    { id: 'storymatch', label: 'Equation-to-Story', icon: VachanaIcons.storymatch, desc: 'Connect abstract algebra with real-world scenarios' }
   ];
 
   // --- 1. Vocab Explorer Data & State ---
@@ -60349,6 +60388,126 @@ function VachanaApp({ onBack }) {
     }
   };
 
+  // --- 14. Numberless Word Problems State ---
+  const numberlessTokensPool = ['Time', '*', '(', 'Rate A', '+', 'Rate B', ')', '=', 'Total', 'x', '-', 'Rate C'];
+  const [numberlessAssembled, setNumberlessAssembled] = useState([]);
+  const [numberlessMsg, setNumberlessMsg] = useState('');
+
+  const checkNumberless = () => {
+    const expr = numberlessAssembled.join(' ');
+    if (
+      expr === 'Time * ( Rate A + Rate B ) = Total' ||
+      expr === '( Rate A + Rate B ) * Time = Total' ||
+      expr === 'Total = Time * ( Rate A + Rate B )' ||
+      expr === 'Total = ( Rate A + Rate B ) * Time'
+    ) {
+      setNumberlessMsg('✅ Correct! You successfully structured the relationship: Time multiplied by the combined rate equals the Total work.');
+    } else {
+      setNumberlessMsg("❌ That structure doesn't represent the total production. Hint: Combine the rates first, then scale by time.");
+    }
+  };
+
+  // --- 15. Schema Classifier State ---
+  const schemaProblems = [
+    {
+      id: 0,
+      text: 'Rahul has 12 apples and Joy has 15 oranges. How many fruits do they have in total?',
+      type: 'total'
+    },
+    {
+      id: 1,
+      text: 'Rahul has 12 apples. He has 3 fewer apples than Joy. How many does Joy have?',
+      type: 'difference'
+    },
+    {
+      id: 2,
+      text: 'Rahul had 12 apples, then he gave 3 to Joy. How many does he have now?',
+      type: 'change'
+    }
+  ];
+  const [schemaAnswers, setSchemaAnswers] = useState({});
+  const [schemaMsg, setSchemaMsg] = useState('');
+
+  const checkSchemaClassification = () => {
+    let allCorrect = true;
+    schemaProblems.forEach(p => {
+      if (schemaAnswers[p.id] !== p.type) {
+        allCorrect = false;
+      }
+    });
+
+    if (allCorrect) {
+      setSchemaMsg('✅ Correct! You accurately classified all three problems: Total (Part-Part-Whole), Difference (Compare), and Change (Join/Separate).');
+    } else {
+      setSchemaMsg('❌ Some classifications are incorrect. Remember: Change involves action over time; Total combines parts; Difference compares sizes.');
+    }
+  };
+
+  // --- 16. Goal-State Predictor State ---
+  const [goalAnswer, setGoalAnswer] = useState(null);
+  const [goalMsg, setGoalMsg] = useState('');
+  const goalOptions = [
+    { text: 'Find the width (w)', correct: false },
+    { text: 'Find the length (2w + 3)', correct: false },
+    { text: 'Find the area (w * (2w + 3))', correct: true },
+    { text: 'Find the perimeter (2w + 2(2w + 3))', correct: false }
+  ];
+
+  const checkGoalPredictor = (opt) => {
+    setGoalAnswer(opt.text);
+    if (opt.correct) {
+      setGoalMsg('✅ Correct! The question asks for the "area of the rectangle", which is Width × Length = w × (2w + 3). Many students fail by solving for w and stopping.');
+    } else {
+      setGoalMsg('❌ Incorrect. Read the last sentence of the word problem again: "what is the area...?"');
+    }
+  };
+
+  // --- 17. Syntactic Rewriter State ---
+  const [rewriteBlocks, setRewriteBlocks] = useState([
+    'then subtract 15',
+    'Multiply a number',
+    'by 3'
+  ]);
+  const [rewriteMsg, setRewriteMsg] = useState('');
+
+  const moveRewriteBlock = (index, direction) => {
+    const nextBlocks = [...rewriteBlocks];
+    const targetIdx = index + direction;
+    if (targetIdx < 0 || targetIdx >= nextBlocks.length) return;
+    const temp = nextBlocks[index];
+    nextBlocks[index] = nextBlocks[targetIdx];
+    nextBlocks[targetIdx] = temp;
+    setRewriteBlocks(nextBlocks);
+  };
+
+  const checkRewriteOrder = () => {
+    const blockString = rewriteBlocks.join(' ');
+    const targetString = 'Multiply a number by 3 then subtract 15';
+    if (blockString === targetString) {
+      setRewriteMsg('✅ Correct! By placing operations in chronological/active order, you clarify the algebraic sequence: 3x − 15.');
+    } else {
+      setRewriteMsg('❌ Incorrect step sequence. Follow the order of algebraic operations: multiply first, then subtract.');
+    }
+  };
+
+  // --- 18. Equation-to-Story Matcher State ---
+  const [storymatchSelected, setStorymatchSelected] = useState(null);
+  const [storymatchMsg, setStorymatchMsg] = useState('');
+  const storymatchOptions = [
+    { text: 'Riya bought 2 books for x dollars each and paid $10 tax. The total bill was $50.', correct: true },
+    { text: 'Riya has 2 books and 10 pencils, totaling 50 school items.', correct: false },
+    { text: 'Riya has $10 and doubles it, then adds $50.', correct: false }
+  ];
+
+  const checkStorymatch = (opt) => {
+    setStorymatchSelected(opt.text);
+    if (opt.correct) {
+      setStorymatchMsg('✅ Correct! 2x (2 books at x each) plus 10 (flat tax) equals 50 (total bill) matches 2x + 10 = 50 perfectly.');
+    } else {
+      setStorymatchMsg('❌ Incorrect story translation. Ensure variable multiplications and constant additions align with the algebraic equation.');
+    }
+  };
+
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1rem', color: 'var(--clr-text)' }}>
       {/* Vachana Header */}
@@ -60383,6 +60542,16 @@ function VachanaApp({ onBack }) {
                 setJumbledMsg('');
                 setParaMsg('');
                 setModifierMsg('');
+                setNumberlessAssembled([]);
+                setNumberlessMsg('');
+                setSchemaAnswers({});
+                setSchemaMsg('');
+                setGoalAnswer(null);
+                setGoalMsg('');
+                setRewriteBlocks(['then subtract 15', 'Multiply a number', 'by 3']);
+                setRewriteMsg('');
+                setStorymatchSelected(null);
+                setStorymatchMsg('');
               }}
               style={{
                 display: 'flex',
@@ -61011,6 +61180,235 @@ function VachanaApp({ onBack }) {
                   border: modifierMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
                 }}>
                   {modifierMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 14. NUMBERLESS WORD PROBLEMS */}
+          {activeTab === 'numberless' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Build the algebraic structure of the relationship without numeric values: 
+                <br />
+                <strong>"A factory produces A widgets per hour. A second factory produces B widgets per hour but starts C hours later. How long does it take for both factories to produce a total of D widgets?"</strong>
+              </p>
+              
+              <div style={{ minHeight: '50px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)', borderRadius: '12px', padding: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                {numberlessAssembled.length === 0 ? (
+                  <span style={{ color: 'var(--clr-text-soft)', fontSize: '0.9rem' }}>Click blocks below to build the conceptual equation plan here...</span>
+                ) : (
+                  numberlessAssembled.map((tok, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setNumberlessAssembled(prev => prev.filter((_, i) => i !== idx));
+                        setNumberlessMsg('');
+                      }}
+                      className="quiz-pill"
+                      style={{ padding: '6px 12px', fontSize: '1rem', cursor: 'pointer', background: 'var(--clr-hover-strong)', border: '1px solid var(--clr-accent)', color: 'var(--clr-accent)' }}
+                    >
+                      {tok}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                {numberlessTokensPool.map((tok, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setNumberlessAssembled(prev => [...prev, tok]);
+                      setNumberlessMsg('');
+                    }}
+                    style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-surface)', color: 'inherit', cursor: 'pointer', fontSize: '0.95rem' }}
+                  >
+                    {tok}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="submit-btn" onClick={checkNumberless}>Verify Plan Structure</button>
+                <button
+                  onClick={() => { setNumberlessAssembled([]); setNumberlessMsg(''); }}
+                  style={{ background: 'transparent', border: '1px solid var(--clr-border)', color: 'var(--clr-text-soft)', cursor: 'pointer', padding: '8px 14px', borderRadius: '8px' }}
+                >
+                  Clear Plan
+                </button>
+              </div>
+
+              {numberlessMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {numberlessMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 15. SCHEMA CLASSIFIER */}
+          {activeTab === 'schema' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '16px' }}>Classify each word problem by its arithmetic schema type:</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+                {schemaProblems.map((prob) => (
+                  <div key={prob.id} style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '0.95rem', fontStyle: 'italic' }}>"{prob.text}"</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Schema:</span>
+                      <select
+                        value={schemaAnswers[prob.id] || ''}
+                        onChange={e => { setSchemaAnswers(prev => ({ ...prev, [prob.id]: e.target.value })); setSchemaMsg(''); }}
+                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-card)', color: 'inherit', fontSize: '0.9rem' }}
+                      >
+                        <option value="">-- select schema --</option>
+                        <option value="total">Total (Part-Part-Whole)</option>
+                        <option value="difference">Difference (Compare)</option>
+                        <option value="change">Change (Join/Separate)</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="submit-btn" onClick={checkSchemaClassification}>Verify Classifications</button>
+
+              {schemaMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {schemaMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 16. GOAL-STATE PREDICTOR */}
+          {activeTab === 'goal' && (
+            <div>
+              <div style={{ background: 'var(--clr-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '0.98rem', fontStyle: 'italic', lineHeight: '1.5' }}>
+                  "A rectangle's length is 3 cm more than twice its width. If the perimeter is 36 cm, what is the area of the rectangle?"
+                </p>
+                <p style={{ margin: 0, fontSize: '0.92rem', color: 'var(--clr-text-soft)' }}>
+                  Which mathematical expression represents the ultimate goal to solve this word problem?
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {goalOptions.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => checkGoalPredictor(opt)}
+                    className="submit-btn"
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 16px',
+                      background: goalAnswer === opt.text ? 'var(--clr-accent)' : 'transparent',
+                      border: '1px solid var(--clr-accent)',
+                      color: goalAnswer === opt.text ? '#fff' : 'var(--clr-accent)'
+                    }}
+                  >
+                    {opt.text}
+                  </button>
+                ))}
+              </div>
+
+              {goalMsg && (
+                <div style={{
+                  fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: goalMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: goalMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {goalMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 17. SYNTACTIC REWRITER */}
+          {activeTab === 'rewrite' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                The passive statement below obscures the sequence of operations. Arrange the blocks in chronological active order:
+                <br />
+                Passive text: <strong>"15 was subtracted from the product of a number and 3."</strong>
+              </p>
+              
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '16px', background: 'var(--clr-surface)', borderRadius: '12px', border: '1px solid var(--clr-border)', marginBottom: '16px' }}>
+                {rewriteBlocks.map((block, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '8px 12px', background: 'var(--clr-card)',
+                      border: '1px solid var(--clr-border)', borderRadius: '8px'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.95rem' }}>{block}</span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button
+                        onClick={() => moveRewriteBlock(idx, -1)}
+                        disabled={idx === 0}
+                        style={{ padding: '2px 5px', fontSize: '0.7rem', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}
+                      >
+                        ◀
+                      </button>
+                      <button
+                        onClick={() => moveRewriteBlock(idx, 1)}
+                        disabled={idx === rewriteBlocks.length - 1}
+                        style={{ padding: '2px 5px', fontSize: '0.7rem', border: '1px solid var(--clr-border)', background: 'transparent', color: 'inherit', cursor: 'pointer', opacity: idx === rewriteBlocks.length - 1 ? 0.3 : 1 }}
+                      >
+                        ▶
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button className="submit-btn" onClick={checkRewriteOrder}>Check Sequence</button>
+
+              {rewriteMsg && (
+                <div style={{ marginTop: '14px', fontSize: '0.95rem', padding: '10px', borderRadius: '8px', background: 'var(--clr-surface)', border: '1px solid var(--clr-border)' }}>
+                  {rewriteMsg}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 18. EQUATION-TO-STORY MATCHER */}
+          {activeTab === 'storymatch' && (
+            <div>
+              <p style={{ fontSize: '0.95rem', marginBottom: '14px' }}>
+                Select the word story that represents the algebraic equation: <strong style={{ color: 'var(--clr-accent)', fontSize: '1.1rem' }}>2x + 10 = 50</strong>.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                {storymatchOptions.map((opt, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => checkStorymatch(opt)}
+                    className="submit-btn"
+                    style={{
+                      textAlign: 'left',
+                      padding: '12px 16px',
+                      background: storymatchSelected === opt.text ? 'var(--clr-accent)' : 'transparent',
+                      border: '1px solid var(--clr-accent)',
+                      color: storymatchSelected === opt.text ? '#fff' : 'var(--clr-accent)'
+                    }}
+                  >
+                    {opt.text}
+                  </button>
+                ))}
+              </div>
+
+              {storymatchMsg && (
+                <div style={{
+                  fontSize: '0.95rem', padding: '12px', borderRadius: '10px',
+                  background: storymatchMsg.startsWith('✅') ? 'rgba(46,160,67,0.1)' : 'rgba(255,0,0,0.08)',
+                  border: storymatchMsg.startsWith('✅') ? '1px solid var(--clr-correct, #2ea043)' : '1px solid red'
+                }}>
+                  {storymatchMsg}
                 </div>
               )}
             </div>
