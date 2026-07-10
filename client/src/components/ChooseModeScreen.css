@@ -1,0 +1,238 @@
+/**
+ * ChooseModeScreen Stylesheet
+ * Integrates with the existing Tenali design system.
+ * Tailored for early learners (5-year-olds) with high visual appeal.
+ */
+
+.choose-mode-wrapper {
+  text-align: center;
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  box-sizing: border-box;
+}
+
+.choose-mode-heading {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: clamp(1.8rem, 5vw, 2.4rem); /* reduced size */
+  font-weight: 800;
+  color: var(--clr-text);
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.choose-mode-options {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 2rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+/* Card Styling (tightened footprint and padding) */
+.choose-mode-card {
+  border-radius: 24px;
+  padding: 18px; /* reduced from 32px */
+  cursor: pointer;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem; /* reduced gap */
+  box-sizing: border-box;
+  width: 215px; /* reduced from 320px (approx 33% reduction) */
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+              box-shadow 0.25s ease-out,
+              border-color 0.25s ease-out;
+}
+
+/* Tactile Click / Press Animation */
+.choose-mode-card:active {
+  transform: scale(0.96) translateY(2px);
+}
+
+/* Let's Learn! (Primary Warm Dark Brown Card) */
+.choose-mode-card.learning {
+  position: relative;
+  background: #2C2118; /* warm dark brown surface */
+  border: 3.5px solid #FF9D42; /* warm orange border */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: scale(1.04);
+}
+
+.choose-mode-card.learning::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  background: transparent;
+  z-index: -1;
+  pointer-events: none;
+  animation: tlf-learning-halo-breathe 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes tlf-learning-halo-breathe {
+  0% {
+    box-shadow: 0 0 20px 4px rgba(255, 157, 66, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 32px 8px rgba(255, 157, 66, 0.35);
+  }
+}
+
+.choose-mode-card.learning:hover {
+  transform: scale(1.07) translateY(-6px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+  border-color: #FFAE5D;
+}
+
+/* Quiz Time! (Secondary Muted Dark Card) */
+.choose-mode-card.quiz {
+  background: #241F1C; /* darker, more neutral surface */
+  border: 2px solid rgba(255, 245, 230, 0.08); /* muted border */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  opacity: 0.95;
+}
+
+.choose-mode-card.quiz:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 245, 230, 0.18);
+  opacity: 1;
+}
+
+/* Mascot Containers */
+.choose-mode-mascot-container {
+  height: 90px; /* reduced from 130px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Circular Backdrop wrapper to make mascots pop on dark backgrounds */
+.choose-mode-mascot-backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: rgba(253, 246, 227, 0.08); /* soft cream / warm beige circle, low contrast, no hard outline */
+  box-sizing: border-box;
+}
+
+/* Looping Idle animation for the Honeybee Mascot */
+.choose-mode-mascot.animate {
+  animation: tlf-mascot-idle 3s ease-in-out infinite alternate;
+}
+
+@keyframes tlf-mascot-idle {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(3deg); }
+  100% { transform: translateY(0) rotate(-3deg); }
+}
+
+/* Titles and Typography (Baloo 2 Round styles) */
+.choose-mode-title {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.4rem; /* reduced from 1.8rem */
+  font-weight: 800;
+  margin: 0;
+}
+
+.choose-mode-card.learning .choose-mode-title {
+  color: #FF9D42; /* warm orange */
+}
+
+.choose-mode-card.quiz .choose-mode-title {
+  color: #8A9BB5; /* readable cool gray-blue */
+}
+
+.choose-mode-desc {
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.choose-mode-card.learning .choose-mode-desc {
+  color: #C9BEB2; /* light warm gray */
+}
+
+.choose-mode-card.quiz .choose-mode-desc {
+  color: #C9BEB2; /* light warm gray */
+}
+
+/* Button Stylings (scaled to standard button proportion ~85%) */
+.choose-mode-button {
+  margin-top: 0.5rem;
+  width: 85%; /* 85% of card width instead of edge-to-edge full banner */
+  padding: 10px 14px; /* reduced padding */
+  border-radius: 16px;
+  border: none;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 1.05rem; /* reduced font-size */
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  transition: transform 0.1s ease-out, filter 0.15s ease-out;
+}
+
+.choose-mode-button:active {
+  transform: translateY(2px);
+}
+
+/* Let's Go Button (Bright Vibrant Orange) */
+.choose-mode-button.lets-go {
+  background: #FF9D42;
+  color: #ffffff;
+  border-bottom: 3px solid #d37318;
+}
+
+.choose-mode-button.lets-go:hover {
+  filter: brightness(1.05);
+}
+
+/* Let's Play Button (Muted Grey/Blue Accent) */
+.choose-mode-button.lets-play {
+  background: #A3AED0;
+  color: #ffffff;
+  border-bottom: 3px solid #7885ad;
+}
+
+.choose-mode-button.lets-play:hover {
+  filter: brightness(1.05);
+}
+
+/* Responsive constraints */
+@media (max-width: 600px) {
+  .choose-mode-options {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .choose-mode-card {
+    width: 90%;
+    max-width: 240px;
+  }
+  
+  .choose-mode-card.learning {
+    transform: none;
+  }
+  
+  .choose-mode-card.learning:hover {
+    transform: translateY(-4px);
+  }
+}
