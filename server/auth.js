@@ -32,6 +32,18 @@ const UserSchema = new mongoose.Schema({
   completedTopics: { type: [String], default: [] },
   goldMastery: { type: [String], default: [] },
   coins: { type: Number, default: 0 },
+  achievements: {
+    completedCollections: [
+      {
+        collectionId: { type: String, required: true },
+        completedAt: { type: Date, default: Date.now }
+      }
+    ]
+  },
+  pinnedBadges: { type: [String], default: [] },
+  totalSolved: { type: Number, default: 0 },
+  streak: { type: Number, default: 0 },
+  lastActiveDate: { type: String, default: "" }
 });
 
 const User = mongoose.model('User', UserSchema);

@@ -67,6 +67,15 @@ app.use(express.static(clientDistPath));
 // serves; only the auth endpoints will return 503.
 const auth = require('./auth');
 const transferScenarios = require('./transferScenarios');
+
+// Load static collections definitions
+let collections = [];
+try {
+  collections = JSON.parse(fs.readFileSync(path.join(__dirname, 'collections.json'), 'utf8'));
+  console.log(`[collections] loaded ${collections.length} collections`);
+} catch (e) {
+  console.error('[collections] failed to load collections.json:', e.message);
+}
 app.use('/api/auth', auth.router);
 auth.seedUsers().catch(() => {});  // always populate in-memory fallback
 auth.connectMongo()
@@ -8977,17 +8986,77 @@ function compareAnswers(userStr, expected) {
   return Math.abs(userNum - expectedNum) <= 0.01;
 }
 
+// Helper to determine if a topic is completed
+function isStage3CompletedServer(topicKey, completedTopics) {
+  if (!completedTopics || !Array.isArray(completedTopics)) return false;
+  if (completedTopics.includes(topicKey)) return true;
+  return completedTopics.includes(`${topicKey}-easy`) &&
+         completedTopics.includes(`${topicKey}-medium`) &&
+         completedTopics.includes(`${topicKey}-hard`);
+}
+
+// Compute daily active streak
+function checkDailyStreak(user) {
+  const now = new Date();
+  const istTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+  const todayStr = istTime.toISOString().split('T')[0];
+
+  if (!user.lastActiveDate) {
+    user.streak = 1;
+  } else if (user.lastActiveDate !== todayStr) {
+    const lastDate = new Date(user.lastActiveDate);
+    const diffTime = Math.abs(new Date(todayStr) - new Date(user.lastActiveDate));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      user.streak += 1;
+    } else if (diffDays > 1) {
+      user.streak = 1;
+    }
+  }
+  user.lastActiveDate = todayStr;
+}
+
+// Evaluate collections completion and award rewards
+function evaluateCollections(user) {
+  const newlyCompleted = [];
+  for (const col of collections) {
+    const isCompleted = col.topics.every(topicKey => isStage3CompletedServer(topicKey, user.completedTopics));
+    if (isCompleted) {
+      if (!user.achievements) {
+        user.achievements = { completedCollections: [] };
+      }
+      if (!user.achievements.completedCollections) {
+        user.achievements.completedCollections = [];
+      }
+      const alreadySaved = user.achievements.completedCollections.some(c => c.collectionId === col.collectionId);
+      if (!alreadySaved) {
+        user.achievements.completedCollections.push({
+          collectionId: col.collectionId,
+          completedAt: new Date()
+        });
+        user.coins = (user.coins || 0) + col.coinReward;
+        newlyCompleted.push(col.collectionId);
+      }
+    }
+  }
+  return newlyCompleted;
+}
+
 // Progress sync endpoints
 app.get('/api/progress', async (req, res) => {
   try {
     const user = await getUserFromReq(req);
     if (!user) {
-      return res.json({ completedTopics: [], goldMastery: [], coins: 0 });
+      return res.json({ completedTopics: [], goldMastery: [], coins: 0, streak: 0, totalSolved: 0 });
     }
+    checkDailyStreak(user);
+    await user.save();
     res.json({
       completedTopics: user.completedTopics || [],
       goldMastery: user.goldMastery || [],
-      coins: user.coins || 0
+      coins: user.coins || 0,
+      streak: user.streak || 0,
+      totalSolved: user.totalSolved || 0
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -9000,16 +9069,194 @@ app.post('/api/progress', express.json(), async (req, res) => {
     if (!user) {
       return res.json({ success: true, guest: true });
     }
-    const { completedTopics, goldMastery, coins } = req.body;
+    const { completedTopics, goldMastery, coins, totalSolved } = req.body;
     if (completedTopics) user.completedTopics = completedTopics;
     if (goldMastery) user.goldMastery = goldMastery;
     if (coins !== undefined) user.coins = coins;
+    if (totalSolved !== undefined) user.totalSolved = totalSolved;
+    
+    checkDailyStreak(user);
+    const newlyCompleted = evaluateCollections(user);
     await user.save();
+    
     res.json({
       success: true,
       completedTopics: user.completedTopics,
       goldMastery: user.goldMastery,
-      coins: user.coins
+      coins: user.coins,
+      streak: user.streak || 0,
+      totalSolved: user.totalSolved || 0,
+      newlyCompleted
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET Collections progress
+app.get('/api/collections/progress', async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    if (!user) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+    const completedTopics = user.completedTopics || [];
+    const progress = collections.map(col => {
+      const topicsProgress = col.topics.map(topicKey => {
+        return {
+          topicKey,
+          completed: isStage3CompletedServer(topicKey, completedTopics)
+        };
+      });
+      const completedCount = topicsProgress.filter(t => t.completed).length;
+      const percentage = Math.round((completedCount / col.topics.length) * 100);
+      const completedLog = user.achievements && user.achievements.completedCollections
+        ? user.achievements.completedCollections.find(c => c.collectionId === col.collectionId)
+        : null;
+      
+      const nextIncomplete = topicsProgress.find(t => !t.completed);
+      
+      return {
+        collectionId: col.collectionId,
+        name: col.name,
+        description: col.description,
+        totalTopics: col.topics.length,
+        completedCount,
+        percentage,
+        completed: completedCount === col.topics.length,
+        topics: topicsProgress,
+        nextTopic: nextIncomplete ? nextIncomplete.topicKey : null,
+        coinReward: col.coinReward,
+        badgeType: col.badgeType,
+        completedAt: completedLog ? completedLog.completedAt : null
+      };
+    });
+    res.json({ collections: progress });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST pin achievement badge
+app.post('/api/profile/pin', express.json(), async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    if (!user) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+    const { badgeId, slotIndex } = req.body;
+    if (slotIndex === undefined || slotIndex < 0 || slotIndex > 2) {
+      return res.status(400).json({ error: 'Invalid slot index' });
+    }
+    
+    let isUnlocked = false;
+    if (badgeId === "") {
+      isUnlocked = true;
+    } else {
+      const isCollection = collections.some(c => c.collectionId === badgeId);
+      if (isCollection) {
+        isUnlocked = user.achievements && user.achievements.completedCollections
+          ? user.achievements.completedCollections.some(c => c.collectionId === badgeId)
+          : false;
+      } else {
+        isUnlocked = isStage3CompletedServer(badgeId, user.completedTopics);
+      }
+    }
+    
+    if (!isUnlocked) {
+      return res.status(403).json({ error: 'Badge is locked' });
+    }
+    
+    let pins = user.pinnedBadges || [];
+    while (pins.length < 3) pins.push("");
+    
+    if (badgeId !== "") {
+      pins = pins.map((p, i) => (p === badgeId && i !== slotIndex) ? "" : p);
+    }
+    
+    pins[slotIndex] = badgeId;
+    user.pinnedBadges = pins;
+    await user.save();
+    
+    res.json({ success: true, pinnedBadges: user.pinnedBadges });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET profile showcase details
+app.get('/api/profile/showcase', async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    if (!user) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
+    
+    const completedTopics = user.completedTopics || [];
+    const uniqueMastered = new Set();
+    completedTopics.forEach(t => {
+      const base = t.replace(/-(easy|medium|hard)$/, '');
+      if (isStage3CompletedServer(base, completedTopics)) {
+        uniqueMastered.add(base);
+      }
+    });
+    
+    let pins = user.pinnedBadges || ["", "", ""];
+    while (pins.length < 3) pins.push("");
+    
+    const pinnedDetails = pins.map(badgeId => {
+      if (!badgeId) return null;
+      
+      const col = collections.find(c => c.collectionId === badgeId);
+      if (col) {
+        return {
+          badgeId,
+          name: col.name,
+          type: 'collection',
+          badgeType: col.badgeType,
+          description: col.description
+        };
+      }
+      
+      return {
+        badgeId,
+        name: badgeId.charAt(0).toUpperCase() + badgeId.slice(1),
+        type: 'topic',
+        badgeType: 'topic'
+      };
+    });
+    
+    const timeline = [];
+    if (user.createdAt) {
+      timeline.push({
+        event: 'Joined Tenali',
+        date: user.createdAt,
+        type: 'system'
+      });
+    }
+    
+    if (user.achievements && user.achievements.completedCollections) {
+      user.achievements.completedCollections.forEach(c => {
+        const col = collections.find(colVal => colVal.collectionId === c.collectionId);
+        timeline.push({
+          event: `Mastered ${col ? col.name : c.collectionId}`,
+          date: c.completedAt,
+          type: 'collection',
+          badgeType: col ? col.badgeType : 'trophy'
+        });
+      });
+    }
+    
+    timeline.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    res.json({
+      username: user.username,
+      streak: user.streak || 0,
+      totalSolved: user.totalSolved || 0,
+      masteryCount: uniqueMastered.size,
+      pinnedBadges: pinnedDetails,
+      unlockedBadgesCount: uniqueMastered.size + (user.achievements && user.achievements.completedCollections ? user.achievements.completedCollections.length : 0),
+      timeline
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

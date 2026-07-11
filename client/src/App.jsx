@@ -153,6 +153,35 @@ function AuthMenu() {
                 <div style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: 0.75 }}>
                   Signed in as <strong>{user.username}</strong>
                 </div>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--clr-border, #444)', margin: '4px 0' }} />
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/'; setOpen(false) }}
+                  style={{ width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  Puzzles
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/collections'; setOpen(false) }}
+                  style={{ width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  Collections
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { window.location.href = '/profile'; setOpen(false) }}
+                  style={{ width: '100%', textAlign: 'left', padding: '8px 12px', borderRadius: 6, background: 'transparent', border: 'none', color: 'var(--clr-text)', cursor: 'pointer', fontSize: '0.95rem' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  Profile
+                </button>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--clr-border, #444)', margin: '4px 0' }} />
                 <button
                   type="button"
                   onClick={() => { logout(); setOpen(false) }}
@@ -241,7 +270,7 @@ function AuthGate({ children }) {
   if (user) return children
   return (
     <div style={{ maxWidth: 520, margin: '4rem auto', padding: '2rem', textAlign: 'center', color: 'var(--clr-text)' }}>
-      <h1 style={{ marginBottom: 8 }}>🔒 Login required</h1>
+      <h1 style={{ marginBottom: 8 }}>Login required</h1>
       <p style={{ opacity: 0.85, lineHeight: 1.6 }}>
         This page is only available to signed-in users. Open the <strong>menu</strong> in the top-right corner and choose <strong>Log in</strong>.
       </p>
@@ -361,6 +390,18 @@ function useTimer() {
  * @returns {ReactElement|null} Table element or null if no results
  */
 function ResultsTable({ results }) {
+  const processedRef = useRef(false);
+  useEffect(() => {
+    if (processedRef.current) return;
+    if (results && results.length > 0) {
+      processedRef.current = true;
+      const correctCount = results.filter(r => r.correct).length;
+      if (correctCount > 0 && typeof window.tenaliIncrementSolved === 'function') {
+        window.tenaliIncrementSolved(correctCount);
+      }
+    }
+  }, [results]);
+
   // Hide table if empty or null
   if (!results || results.length === 0) return null
   // Calculate summary stats
@@ -35480,6 +35521,13 @@ function App() {
   const [coins, setCoins] = useState(() => {
     try { return parseInt(localStorage.getItem('tenali-coins') || '0', 10) } catch { return 0 }
   })
+  const [totalSolved, setTotalSolved] = useState(() => {
+    try { return parseInt(localStorage.getItem('tenali-total-solved') || '0', 10) } catch { return 0 }
+  })
+  const [streak, setStreak] = useState(() => {
+    try { return parseInt(localStorage.getItem('tenali-streak') || '0', 10) } catch { return 0 }
+  })
+  const [newCollectionsCelebration, setNewCollectionsCelebration] = useState(null)
   const [transferTopic, setTransferTopic] = useState(null)
 
   // Sync progress with backend on mount & whenever user changes
@@ -35497,9 +35545,13 @@ function App() {
             setCompletedTopics(data.completedTopics || [])
             setGoldMastery(data.goldMastery || [])
             setCoins(data.coins || 0)
+            setTotalSolved(data.totalSolved || 0)
+            setStreak(data.streak || 0)
             localStorage.setItem('tenali-completed-topics', JSON.stringify(data.completedTopics || []))
             localStorage.setItem('tenali-gold-mastery', JSON.stringify(data.goldMastery || []))
             localStorage.setItem('tenali-coins', String(data.coins || 0))
+            localStorage.setItem('tenali-total-solved', String(data.totalSolved || 0))
+            localStorage.setItem('tenali-streak', String(data.streak || 0))
           }
         }
       } catch (e) {
@@ -35513,16 +35565,20 @@ function App() {
     return () => window.removeEventListener('tenali-auth-change', handleAuthChange)
   }, [user])
 
-  const syncProgressToServer = async (newCompleted, newGold, newCoins) => {
+  const syncProgressToServer = async (newCompleted, newGold, newCoins, newSolved, newStreak) => {
+    const activeSolved = newSolved !== undefined ? newSolved : totalSolved
+    const activeStreak = newStreak !== undefined ? newStreak : streak
     localStorage.setItem('tenali-completed-topics', JSON.stringify(newCompleted))
     localStorage.setItem('tenali-gold-mastery', JSON.stringify(newGold))
     localStorage.setItem('tenali-coins', String(newCoins))
+    localStorage.setItem('tenali-total-solved', String(activeSolved))
+    localStorage.setItem('tenali-streak', String(activeStreak))
 
     const token = localStorage.getItem('tenali-auth-token')
     if (!token) return
 
     try {
-      await fetch(`${API}/api/progress`, {
+      const r = await fetch(`${API}/api/progress`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35531,13 +35587,44 @@ function App() {
         body: JSON.stringify({
           completedTopics: newCompleted,
           goldMastery: newGold,
-          coins: newCoins
+          coins: newCoins,
+          totalSolved: activeSolved
         })
       })
+      if (r.ok) {
+        const data = await r.json()
+        if (data && data.success) {
+          if (data.coins !== undefined && data.coins !== newCoins) {
+            setCoins(data.coins)
+            localStorage.setItem('tenali-coins', String(data.coins))
+          }
+          if (data.streak !== undefined && data.streak !== activeStreak) {
+            setStreak(data.streak)
+            localStorage.setItem('tenali-streak', String(data.streak))
+          }
+          if (data.newlyCompleted && data.newlyCompleted.length > 0) {
+            setNewCollectionsCelebration(data.newlyCompleted)
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to push progress to backend:', e)
     }
   }
+
+  useEffect(() => {
+    window.tenaliIncrementSolved = (amount) => {
+      setTotalSolved(prev => {
+        const next = prev + amount
+        localStorage.setItem('tenali-total-solved', String(next))
+        syncProgressToServer(completedTopics, goldMastery, coins, next)
+        return next
+      })
+    }
+    return () => {
+      delete window.tenaliIncrementSolved
+    }
+  }, [completedTopics, goldMastery, coins, totalSolved])
 
   const markTopicCompleted = (topicKey, difficulty = '') => {
     const targetKey = difficulty ? `${topicKey}-${difficulty}` : topicKey;
@@ -35579,9 +35666,101 @@ function App() {
    */
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
+  // Helper to render celebration modal
+  const renderCelebrationModal = () => {
+    if (!newCollectionsCelebration || newCollectionsCelebration.length === 0) return null;
+    const currentId = newCollectionsCelebration[0];
+    const displayName = currentId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    
+    // Determine badge icon type
+    const defaultBadgeTypes = {
+      'counting-critters': 'dino',
+      'arithmetic-basics': 'trophy',
+      'fraction-explorer': 'feast',
+      'geometry-master': 'wizard',
+      'division-detective': 'detective',
+      'time-traveler': 'rocket',
+      'data-detective': 'chest',
+      'algebra-alchemist': 'flask',
+      'pythagoras-path': 'shield',
+      'trig-treasure': 'crown'
+    };
+    const bType = defaultBadgeTypes[currentId] || 'trophy';
+
+    return (
+      <div className="celebration-overlay" onClick={() => setNewCollectionsCelebration(prev => prev.slice(1))}>
+        <div className="celebration-card" onClick={e => e.stopPropagation()}>
+          <div className="confetti-emitter"></div>
+          <h2 className="celebration-title">Album Completed!</h2>
+          <div className="celebration-badge-container">
+            <BadgeIcon type={bType} size={150} />
+          </div>
+          <p className="celebration-text">
+            Congratulations! You have completed the <strong>{displayName}</strong> Collection!
+          </p>
+          <button className="celebration-btn" onClick={() => setNewCollectionsCelebration(prev => prev.slice(1))}>
+            Awesome!
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // ========== ROUTING: URL-BASED (STUDENT PAGES) ==========
   // Check if current URL matches a specific student page
   const pathname = window.location.pathname.replace(/\/$/, '').toLowerCase()
+
+  // Route: /collections
+  if (pathname === '/collections') {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <AuthGate>
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '4px' }}>
+                <img src="/tenali.png" alt="Tenali Raman" style={{ width: '80px', height: 'auto', flexShrink: 0, cursor: 'pointer' }} onClick={() => window.location.href = '/'} />
+                <div>
+                  <h1 style={{ margin: 0, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>Tenali</h1>
+                  <p className="subtitle" style={{ margin: 0 }}>View your achievements and milestones</p>
+                </div>
+              </div>
+              <AchievementCollections onSelectTopic={(topicKey) => { setMode(topicKey) }} />
+            </div>
+          </AuthGate>
+        </div>
+        {renderCelebrationModal()}
+      </div>
+    )
+  }
+
+  // Route: /profile
+  if (pathname === '/profile') {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <AuthGate>
+            <div style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '4px' }}>
+                <img src="/tenali.png" alt="Tenali Raman" style={{ width: '80px', height: 'auto', flexShrink: 0, cursor: 'pointer' }} onClick={() => window.location.href = '/'} />
+                <div>
+                  <h1 style={{ margin: 0, cursor: 'pointer' }} onClick={() => window.location.href = '/'}>Tenali</h1>
+                  <p className="subtitle" style={{ margin: 0 }}>View your achievements and milestones</p>
+                </div>
+              </div>
+              <ProfileShowcase onSelectTopic={(topicKey) => { setMode(topicKey) }} />
+            </div>
+          </AuthGate>
+        </div>
+        {renderCelebrationModal()}
+      </div>
+    )
+  }
 
   // Route: /tables → Generic 5-level scaffolded tables app
   if (pathname === '/tables') {
@@ -36194,6 +36373,7 @@ function App() {
           />
         )}
       </div>
+      {renderCelebrationModal()}
     </div>
   )
 }
@@ -36410,6 +36590,595 @@ function Home({ onSelect, completedTopics = [], goldMastery = [], coins = 0 }) {
       <div className="grid-dimension">{rows} × {cols}</div>
     </>
   )
+}
+
+function BadgeIcon({ type, size = 64, locked = false }) {
+  const colorFilter = locked ? 'grayscale(1) opacity(0.22)' : 'none';
+  
+  const renderSVG = () => {
+    switch (type) {
+      case 'dino':
+      case 'counting-critters':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-dino" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#86efac" />
+                <stop offset="100%" stopColor="#22c55e" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(34, 197, 94, 0.15)" stroke="#22c55e" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <polygon points="65,30 75,35 68,42" fill="#f97316" />
+              <polygon points="58,20 68,25 61,32" fill="#f97316" />
+              <polygon points="48,15 56,22 47,27" fill="#f97316" />
+              <path d="M 30,75 C 30,50 45,35 60,35 C 70,35 75,45 75,50 C 75,55 70,60 65,60 C 65,70 55,75 30,75" fill="url(#grad-dino)" />
+              <path d="M 30,75 C 20,78 15,70 12,65 C 18,65 25,70 30,75" fill="url(#grad-dino)" />
+              <circle cx="56" cy="45" r="4" fill="#1e293b" />
+              <circle cx="55" cy="44" r="1.2" fill="#fff" />
+              <circle cx="62" cy="48" r="3" fill="#f43f5e" opacity="0.6" />
+              <path d="M 52,50 Q 56,54 58,50" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" />
+            </g>
+          </svg>
+        );
+      case 'trophy':
+      case 'arithmetic-basics':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-gold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fde047" />
+                <stop offset="100%" stopColor="#eab308" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(234, 179, 8, 0.15)" stroke="#eab308" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 30,40 C 20,40 20,55 30,55" fill="none" stroke="url(#grad-gold)" strokeWidth="6" strokeLinecap="round" />
+              <path d="M 70,40 C 80,40 80,55 70,55" fill="none" stroke="url(#grad-gold)" strokeWidth="6" strokeLinecap="round" />
+              <path d="M 32,32 L 68,32 L 64,56 C 60,66 40,66 36,56 Z" fill="url(#grad-gold)" />
+              <rect x="46" y="62" width="8" height="12" fill="url(#grad-gold)" />
+              <path d="M 34,74 L 66,74 L 62,80 L 38,80 Z" fill="#ca8a04" />
+              <polygon points="50,40 53,46 60,47 55,52 56,59 50,55 44,59 45,52 40,47 47,46" fill="#ca8a04" />
+            </g>
+          </svg>
+        );
+      case 'feast':
+      case 'fraction-explorer':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-pie1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#ec4899" />
+                <stop offset="100%" stopColor="#be185d" />
+              </linearGradient>
+              <linearGradient id="grad-pie2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#1d4ed8" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(236, 72, 153, 0.15)" stroke="#ec4899" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 50,50 L 50,20 A 30,30 0 1,1 20,50 L 50,50" fill="url(#grad-pie2)" />
+              <path d="M 54,46 L 54,16 A 30,30 0 0,1 84,46 L 54,46" fill="url(#grad-pie1)" transform="translate(4, -4)" />
+              <circle cx="42" cy="58" r="3" fill="#fff" />
+              <circle cx="42" cy="58" r="1.2" fill="#000" />
+              <circle cx="52" cy="58" r="3" fill="#fff" />
+              <circle cx="52" cy="58" r="1.2" fill="#000" />
+              <path d="M 44,64 Q 47,67 50,64" fill="none" stroke="#000" strokeWidth="1.5" />
+            </g>
+          </svg>
+        );
+      case 'wizard':
+      case 'geometry-master':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-wiz" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#6b21a8" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 50,18 C 58,35 68,52 74,68 C 58,68 42,68 26,68 C 32,52 42,35 50,18" fill="url(#grad-wiz)" />
+              <path d="M 20,68 C 20,64 80,64 80,68 C 80,72 20,72 20,68 Z" fill="#d946ef" />
+              <polygon points="50,34 52,38 56,38 53,41 54,45 50,42 46,45 47,41 44,38 48,38" fill="#fde047" />
+              <polygon points="40,48 41,50 43,50 41,52 42,54 40,53 38,54 39,52 37,50 39,50" fill="#fde047" />
+              <polygon points="60,48 61,50 63,50 61,52 62,54 60,53 58,54 59,52 57,50 59,50" fill="#fde047" />
+            </g>
+          </svg>
+        );
+      case 'detective':
+      case 'division-detective':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-det" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f97316" />
+                <stop offset="100%" stopColor="#c2410c" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(249, 115, 22, 0.15)" stroke="#f97316" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 25,56 C 25,35 75,35 75,56 C 65,56 35,56 25,56" fill="url(#grad-det)" />
+              <path d="M 22,56 L 78,56 L 74,60 L 26,60 Z" fill="#7c2d12" />
+              <circle cx="50" cy="55" r="14" fill="rgba(56, 189, 248, 0.3)" stroke="#38bdf8" strokeWidth="3.5" />
+              <line x1="60" y1="65" x2="74" y2="79" stroke="#7c2d12" strokeWidth="6" strokeLinecap="round" />
+            </g>
+          </svg>
+        );
+      case 'rocket':
+      case 'time-traveler':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-rock" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#b91c1c" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 50,70 Q 42,80 50,92 Q 58,80 50,70" fill="#f97316" />
+              <path d="M 50,72 Q 46,78 50,86 Q 54,78 50,72" fill="#fde047" />
+              <path d="M 50,18 C 58,36 58,62 55,70 L 45,70 C 42,62 42,36 50,18 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1.5" />
+              <path d="M 50,18 C 54,26 55,34 55,40 L 45,40 C 45,34 46,26 50,18 Z" fill="url(#grad-rock)" />
+              <path d="M 43,62 L 32,72 L 42,70 Z" fill="url(#grad-rock)" />
+              <path d="M 57,62 L 68,72 L 58,70 Z" fill="url(#grad-rock)" />
+              <circle cx="50" cy="50" r="5" fill="#38bdf8" stroke="#cbd5e1" strokeWidth="1.5" />
+            </g>
+          </svg>
+        );
+      case 'chest':
+      case 'data-detective':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-chest" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ca8a04" />
+                <stop offset="100%" stopColor="#854d0e" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(202, 138, 4, 0.15)" stroke="#ca8a04" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <rect x="25" y="52" width="50" height="26" rx="4" fill="url(#grad-chest)" />
+              <path d="M 23,50 C 23,32 77,32 77,50 Z" fill="#ca8a04" />
+              <ellipse cx="50" cy="50" rx="20" ry="6" fill="#fde047" />
+              <rect x="47" y="52" width="6" height="10" rx="1.5" fill="#e2e8f0" />
+              <circle cx="50" cy="55" r="1.5" fill="#0f172a" />
+              <polygon points="32,40 33.5,43 36.5,43.5 34,45.5 35,48.5 32,47 29,48.5 30,45.5 27.5,43.5 30.5,43" fill="#fff" />
+              <polygon points="68,40 69.5,43 72.5,43.5 70,45.5 71,48.5 68,47 65,48.5 66,45.5 63.5,43.5 66.5,43" fill="#fff" />
+            </g>
+          </svg>
+        );
+      case 'flask':
+      case 'algebra-alchemist':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-flask" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#db2777" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(219, 39, 119, 0.15)" stroke="#db2777" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 33,65 L 67,65 L 75,78 C 77,82 73,85 68,85 L 32,85 C 27,85 23,82 25,78 Z" fill="url(#grad-flask)" />
+              <path d="M 42,28 L 58,28 L 58,45 L 77,77 C 80,82 76,87 70,87 L 30,87 C 24,87 20,82 23,77 L 42,45 Z" fill="none" stroke="#e2e8f0" strokeWidth="4.5" strokeLinejoin="round" />
+              <rect x="39" y="24" width="22" height="5" rx="1" fill="#cbd5e1" />
+              <circle cx="44" cy="55" r="3" fill="#f472b6" opacity="0.7" />
+              <circle cx="54" cy="48" r="2.2" fill="#c084fc" opacity="0.8" />
+              <circle cx="50" cy="62" r="4" fill="#f472b6" opacity="0.6" />
+            </g>
+          </svg>
+        );
+      case 'shield':
+      case 'pythagoras-path':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-sh1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#0ea5e9" />
+                <stop offset="100%" stopColor="#2563eb" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 30,26 C 42,26 50,20 50,20 C 50,20 58,26 70,26 C 70,45 68,68 50,82 C 32,68 30,45 30,26 Z" fill="url(#grad-sh1)" stroke="#cbd5e1" strokeWidth="2.5" />
+              <polygon points="42,38 62,58 42,58" fill="#fde047" stroke="#ca8a04" strokeWidth="2" strokeLinejoin="round" />
+            </g>
+          </svg>
+        );
+      case 'crown':
+      case 'trig-treasure':
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <circle cx="50" cy="50" r="46" fill="rgba(250, 204, 21, 0.15)" stroke="#eab308" strokeWidth="3" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <path d="M 22,74 L 78,74 L 84,40 L 68,54 L 50,30 L 32,54 L 16,40 Z" fill="#facc15" stroke="#ca8a04" strokeWidth="2" />
+              <rect x="22" y="70" width="56" height="6" rx="2" fill="#ca8a04" />
+              <circle cx="50" cy="28" r="3.5" fill="#ef4444" />
+              <circle cx="16" cy="38" r="3" fill="#22c55e" />
+              <circle cx="84" cy="38" r="3" fill="#22c55e" />
+              <rect x="30" y="71.5" width="4" height="3" fill="#ef4444" />
+              <rect x="50" y="71.5" width="4" height="3" fill="#3b82f6" />
+              <rect x="66" y="71.5" width="4" height="3" fill="#ef4444" />
+            </g>
+          </svg>
+        );
+      default:
+        return (
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs>
+              <linearGradient id="grad-med" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#0284c7" />
+              </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="46" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" strokeWidth="2" strokeDasharray={locked ? "4 4" : "none"} />
+            <g style={{ filter: colorFilter }}>
+              <polygon points="40,54 32,86 48,78" fill="#ef4444" />
+              <polygon points="60,54 68,86 52,78" fill="#ef4444" />
+              <polygon points="42,54 36,86 50,78" fill="#dc2626" />
+              <polygon points="58,54 64,86 50,78" fill="#dc2626" />
+              <circle cx="50" cy="46" r="22" fill="url(#grad-med)" stroke="#0284c7" strokeWidth="2.5" />
+              <polygon points="50,34 53,41 61,42 55,47 57,55 50,51 43,55 45,47 39,42 47,41" fill="#fff" />
+            </g>
+          </svg>
+        );
+    }
+  };
+
+  return (
+    <div className={`badge-icon-container ${locked ? 'badge-locked' : 'badge-unlocked'}`} style={{ width: size, height: size, display: 'inline-block' }}>
+      {renderSVG()}
+    </div>
+  );
+}
+
+function AchievementCollections({ onSelectTopic }) {
+  const [data, setData] = useState(null)
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchCollections = async () => {
+    const token = localStorage.getItem('tenali-auth-token')
+    if (!token) return
+    try {
+      const r = await fetch(`${API}/api/collections/progress`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (r.ok) {
+        const res = await r.json()
+        setData(res.collections)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCollections()
+  }, [])
+
+  if (loading) {
+    return <div className="loading-screen">Opening the Collector Bookshelf...</div>
+  }
+
+  return (
+    <div className="bookshelf-container">
+      <h2 className="bookshelf-title">My Collector Bookshelf</h2>
+      <p className="bookshelf-subtitle">Complete all topics in a book to earn a shiny Gold Album Badge!</p>
+      
+      <div className="bookshelf-grid">
+        {data && data.map(book => {
+          const isDone = book.completed;
+          return (
+            <div key={book.collectionId} className={`book-card ${book.badgeType}-theme`} onClick={() => setSelectedBook(book)}>
+              <div className="book-cover">
+                <div className="book-badge-icon">
+                  <BadgeIcon type={book.badgeType} size={80} locked={!isDone} />
+                </div>
+                <h3 className="book-title">{book.name}</h3>
+                <span className="book-badge-difficulty">{book.difficulty}</span>
+              </div>
+              <div className="book-info">
+                <p className="book-desc">{book.description}</p>
+                
+                <div className="book-progress-wrapper">
+                  <div className="book-progress-text">
+                    <span>Progress</span>
+                    <strong>{book.completedCount} / {book.totalTopics} ({book.percentage}%)</strong>
+                  </div>
+                  <div className="book-progress-bar-bg">
+                    <div className="book-progress-bar-fill" style={{ width: `${book.percentage}%` }}></div>
+                  </div>
+                </div>
+                
+                {!isDone && book.nextTopic && (
+                  <button className="book-next-btn" onClick={(e) => {
+                    e.stopPropagation();
+                    if (typeof onSelectTopic === 'function') {
+                      onSelectTopic(book.nextTopic);
+                    }
+                  }}>
+                    Play Next: {book.nextTopic.charAt(0).toUpperCase() + book.nextTopic.slice(1)}
+                  </button>
+                )}
+                {isDone && <div className="book-complete-tag">Completed</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {selectedBook && (
+        <div className="book-modal-overlay" onClick={() => setSelectedBook(null)}>
+          <div className="book-modal-content" onClick={e => e.stopPropagation()}>
+            <button className="book-modal-close" onClick={() => setSelectedBook(null)}>✕</button>
+            <h2 className="book-modal-title">{selectedBook.name}</h2>
+            <p className="book-modal-desc">{selectedBook.description}</p>
+            
+            <div className="book-pages">
+              <div className="book-page left-page">
+                <h3>Topics Checklist</h3>
+                <div className="topics-list-detailed">
+                  {selectedBook.topics.map(topic => {
+                    return (
+                      <div key={topic.topicKey} className={`topic-row-check ${topic.completed ? 'completed' : 'locked'}`} onClick={() => {
+                        if (!topic.completed) {
+                          setSelectedBook(null);
+                          onSelectTopic(topic.topicKey);
+                        }
+                      }}>
+                        <span className="checkbox-icon">{topic.completed ? '✓' : ''}</span>
+                        <div className="topic-text-info">
+                          <span className="topic-check-name">{topic.topicKey.charAt(0).toUpperCase() + topic.topicKey.slice(1)}</span>
+                          <span className="topic-check-status">{topic.completed ? 'Mastered!' : 'Click to start practice'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="book-page right-page">
+                <h3>Collection Badge</h3>
+                <div className="badge-showcase-large">
+                  <BadgeIcon type={selectedBook.badgeType} size={150} locked={!selectedBook.completed} />
+                  <h4>{selectedBook.completed ? 'Unlocked' : 'Locked'}</h4>
+                  <p>{selectedBook.completed ? 'You earned the Gold Album Badge!' : 'Master all topics on the left to unlock!'}</p>
+                  {selectedBook.completed && (
+                    <div className="gold-ribbon-tag">ALBUM COMPLETED</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileShowcase({ onSelectTopic }) {
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [pinModalOpen, setPinModalOpen] = useState(false)
+  const [activeSlot, setActiveSlot] = useState(null)
+  const [inventory, setInventory] = useState([])
+
+  const fetchProfile = async () => {
+    const token = localStorage.getItem('tenali-auth-token')
+    if (!token) return
+    try {
+      const r = await fetch(`${API}/api/profile/showcase`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (r.ok) {
+        const res = await r.json()
+        setProfile(res)
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchInventory = async () => {
+    const token = localStorage.getItem('tenali-auth-token')
+    if (!token) return
+    try {
+      const r = await fetch(`${API}/api/collections/progress`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (r.ok) {
+        const res = await r.json()
+        const unlocked = []
+        
+        res.collections.forEach(col => {
+          if (col.completed) {
+            unlocked.push({
+              badgeId: col.collectionId,
+              name: col.name,
+              badgeType: col.badgeType,
+              type: 'collection'
+            })
+          }
+        })
+        
+        const completed = JSON.parse(localStorage.getItem('tenali-completed-topics') || '[]')
+        const uniqueTopics = new Set()
+        completed.forEach(t => {
+          const base = t.replace(/-(easy|medium|hard)$/, '')
+          if (isStage3Completed(base, completed)) {
+            uniqueTopics.add(base)
+          }
+        })
+        
+        uniqueTopics.forEach(topicKey => {
+          unlocked.push({
+            badgeId: topicKey,
+            name: topicKey.charAt(0).toUpperCase() + topicKey.slice(1),
+            badgeType: 'topic',
+            type: 'topic'
+          })
+        })
+        
+        setInventory(unlocked)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const handleOpenPinModal = (slotIndex) => {
+    setActiveSlot(slotIndex)
+    fetchInventory().then(() => setPinModalOpen(true))
+  }
+
+  const handlePinBadge = async (badgeId) => {
+    const token = localStorage.getItem('tenali-auth-token')
+    if (!token) return
+    try {
+      const r = await fetch(`${API}/api/profile/pin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          badgeId,
+          slotIndex: activeSlot
+        })
+      })
+      if (r.ok) {
+        setPinModalOpen(false)
+        fetchProfile()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  if (loading) {
+    return <div className="loading-screen">Opening Profile Showcase...</div>
+  }
+
+  const pins = profile ? profile.pinnedBadges : [null, null, null];
+  while (pins.length < 3) pins.push(null);
+
+  return (
+    <div className="profile-container">
+      <h2 className="profile-title">{profile ? profile.username.toUpperCase() : 'STUDENT'}'S CORNER</h2>
+      
+      <div className="pinned-showcase-section">
+        <h3>Featured Pinned Badges</h3>
+        <div className="pinned-slots-grid">
+          {pins.map((badge, idx) => {
+            return (
+              <div key={idx} className="pin-slot-card">
+                {badge ? (
+                  <div className="pin-badge-display">
+                    <BadgeIcon type={badge.badgeType} size={110} />
+                    <span className="pinned-badge-name">{badge.name}</span>
+                    <button className="unpin-btn" onClick={() => handlePinBadge("")} title="Unpin Badge">✕</button>
+                  </div>
+                ) : (
+                  <div className="pin-empty-display" onClick={() => handleOpenPinModal(idx)}>
+                    <div className="plus-symbol">+</div>
+                    <span>Featured Slot {idx + 1}</span>
+                    <button className="pin-action-btn">Pin Badge</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="stats-showcase-grid">
+        <div className="stat-card-bubble streak-bubble">
+          <span className="stat-val">{profile ? profile.streak : 0}</span>
+          <span className="stat-lbl">Day Streak</span>
+        </div>
+        <div className="stat-card-bubble mastered-bubble">
+          <span className="stat-val">{profile ? profile.masteryCount : 0}</span>
+          <span className="stat-lbl">Topics Mastered</span>
+        </div>
+        <div className="stat-card-bubble solved-bubble">
+          <span className="stat-val">{profile ? profile.totalSolved : 0}</span>
+          <span className="stat-lbl">Questions Solved</span>
+        </div>
+      </div>
+
+      <div className="profile-timeline-section">
+        <h3>Journey Milestones</h3>
+        <div className="timeline-trail">
+          {profile && profile.timeline && profile.timeline.map((item, idx) => {
+            const dateStr = new Date(item.date).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            });
+            return (
+              <div key={idx} className="timeline-node">
+                <div className="timeline-marker">
+                  {item.type === 'system' ? '●' : '★'}
+                </div>
+                <div className="timeline-info">
+                  <span className="timeline-date">{dateStr}</span>
+                  <strong className="timeline-event">{item.event}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {pinModalOpen && (
+        <div className="modal-overlay" onClick={() => setPinModalOpen(false)}>
+          <div className="modal-content pin-selector-modal" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setPinModalOpen(false)}>✕</button>
+            <h3>Choose a Badge to Feature</h3>
+            <p>Select an unlocked topic badge or completed collection gold badge:</p>
+            
+            {inventory.length === 0 ? (
+              <div className="empty-inventory">
+                <p>Oops, you don't have any unlocked badges yet!</p>
+                <p>Practice and master topics to start collecting badges!</p>
+              </div>
+            ) : (
+              <div className="badge-inventory-grid">
+                {inventory.map(item => {
+                  const isPinned = pins.some(p => p && p.badgeId === item.badgeId);
+                  return (
+                    <button 
+                       key={item.badgeId} 
+                      className={`inventory-badge-card ${isPinned ? 'already-pinned' : ''}`}
+                      disabled={isPinned}
+                      onClick={() => handlePinBadge(item.badgeId)}
+                    >
+                      <BadgeIcon type={item.badgeType} size={64} />
+                      <span className="inventory-badge-name">{item.name}</span>
+                      {isPinned && <span className="pinned-label">Pinned</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
