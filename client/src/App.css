@@ -2518,3 +2518,36 @@ button:disabled {
     margin: 0 3px;
   }
 }
+
+/* ─────────────────────────────────────────────────────────── */
+/* LEARNING JOURNEY STYLES */
+/* ─────────────────────────────────────────────────────────── */
+
+.learning-journey-container {
+  padding: 16px;
+}
+
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.concept-timeline-node {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  position: relative;
+}
+
+.concept-card-active {
+  background: var(--clr-hover-strong, rgba(255,255,255,0.06)) !important;
+  border: 1.5px solid var(--clr-accent) !important;
+  box-shadow: 0 0 10px rgba(254, 180, 123, 0.15);
+}
+
+.checkpoint-badge {
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+

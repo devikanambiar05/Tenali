@@ -39,7 +39,8 @@ let connected = false;
 
 async function connectMongo(uri = MONGO_URI) {
   if (connected) return;
-  await mongoose.connect(uri, { serverSelectionTimeoutMS: 4000 });
+  console.log(`[auth] Attempting to connect to MongoDB: ${uri.replace(/\/\/.*@/, '//***@')}`);
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
   connected = true;
   console.log(`[auth] Mongo connected: ${uri.replace(/\/\/.*@/, '//***@')}`);
 }
