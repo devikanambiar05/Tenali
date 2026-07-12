@@ -23,6 +23,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react'
 import './App.css'
+import LanguageDashboard from './language/LanguageDashboard'
 
 // API base URL from environment variables (Vite)
 const API = import.meta.env.VITE_API_BASE_URL || '';
@@ -303,7 +304,7 @@ function useAutoAdvance(revealed, advanceFnRef, isCorrect) {
  *   - stop(): Stop timer and return total elapsed seconds
  *   - reset(): Clear timer and set elapsed to 0
  */
-function useTimer() {
+export function useTimer() {
   // Current elapsed time in seconds, displayed to user
   const [elapsed, setElapsed] = useState(0)
   // Reference to the timestamp when timer started (using Date.now())
@@ -313,11 +314,11 @@ function useTimer() {
 
   /**
    * start(): Initialize and begin the timer
-   * Records the current time, resets elapsed to 0, and starts interval updates
+   * Records the current time (adjusted by initialValue if provided), and starts interval updates
    */
-  const start = () => {
-    startRef.current = Date.now()
-    setElapsed(0)
+  const start = (initialValue = 0) => {
+    startRef.current = Date.now() - (initialValue * 1000)
+    setElapsed(initialValue)
     clearInterval(intervalRef.current)
     // Update displayed elapsed time every 250ms (4x per second for smooth UI)
     intervalRef.current = setInterval(() => {
@@ -35569,6 +35570,20 @@ function App() {
     )
   }
 
+  // Route: /language → Language Puzzles dashboard and modules
+  if (pathname === '/language') {
+    return (
+      <div className="app-shell">
+        <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
+        <div className="card">
+          <LanguageDashboard onBack={() => { window.location.href = '/' }} />
+        </div>
+      </div>
+    )
+  }
+
   // Route: /tenth → Cambridge IGCSE index page (links to all 24 chapters)
   if (pathname === '/tenth') {
     return (
@@ -36251,6 +36266,15 @@ function Home({ onSelect }) {
                 <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>{app.subtitle}</span>
               </button>
             ))}
+            <button onClick={() => { setMenuOpen(false); window.location.href = '/language'; }} style={{
+              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
+              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
+              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)'
+            }} onMouseEnter={e => e.target.style.background = 'var(--clr-hover-strong)'}
+               onMouseLeave={e => e.target.style.background = 'none'}>
+              <strong style={{ color: 'var(--clr-accent)' }}>Language Puzzles</strong>
+              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Fill in the blanks to create new words</span>
+            </button>
           </div>}
         </div>
       </div>
@@ -49556,7 +49580,7 @@ function TatsavitLineApp({ onBack }) {
  * @param {Function} props.onBack - Callback when back button is clicked
  * @param {React.ReactNode} props.children - Quiz content to display
  */
-function QuizLayout({ title, subtitle, onBack, children, timer }) {
+export function QuizLayout({ title, subtitle, onBack, children, timer }) {
   return (
     <>
       <div className="header-row">
@@ -49569,6 +49593,7 @@ function QuizLayout({ title, subtitle, onBack, children, timer }) {
     </>
   )
 }
+
 
 // Export main App component (entry point)
 export default App
