@@ -2549,3 +2549,112 @@ button:disabled {
   min-width: 48px;
   justify-content: center;
 }
+
+/* ── Goal Based Practice Success Scorecard & Confetti ── */
+
+.goal-success-card {
+  padding: 2.5rem 2rem;
+  border-radius: 24px;
+  background: linear-gradient(135deg, var(--clr-card) 0%, rgba(30, 30, 35, 0.98) 100%);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  max-width: 600px;
+  margin: 2rem auto;
+  box-sizing: border-box;
+  animation: cardAppear 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Confetti particles */
+.confetti-particle {
+  position: absolute;
+  top: -10px;
+  animation: confetti-fall var(--confetti-duration) linear forwards;
+  pointer-events: none;
+  z-index: 999;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(600px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Success Checkmark */
+.success-checkmark-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes checkmarkStroke {
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes checkmarkScale {
+  0%, 100% {
+    transform: none;
+  }
+  50% {
+    transform: scale3d(1.1, 1.1, 1);
+  }
+}
+
+@keyframes checkmarkFill {
+  100% {
+    box-shadow: inset 0px 0px 0px 30px rgba(255,255,255,0.05);
+  }
+}
+
+/* Button overrides in scorecard */
+.goal-success-card button {
+  padding: 12px 24px !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border-radius: 30px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-transform: none !important;
+  margin-top: 10px !important;
+}
+
+.goal-success-card button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+
+/* Scrollbar styling for results inside scorecard */
+.goal-success-card ::-webkit-scrollbar {
+  width: 6px;
+}
+.goal-success-card ::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.goal-success-card ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+.goal-success-card ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
