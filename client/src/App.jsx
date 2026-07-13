@@ -40653,7 +40653,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
   const filteredRegular = isSearching ? regularApps.filter(matchFilter) : regularApps
   
   // Decide which items to show on the main grid list
-  const displayGridApps = filteredRegular
+  const displayGridApps = isGoalSelection ? filteredRegular : [...filteredFeatured, ...filteredRegular]
 
   // Grid layout tracking (for responsive display)
   const gridRef = useRef(null)
@@ -40725,7 +40725,7 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
               <strong style={{ color: 'var(--clr-accent)' }}>ℹ️ About Tenali</strong>
             </button>
             {/* Visual Learning Universe pinned at top of hamburger menu */}
-            {[mathLabEntry, ...featuredApps].map(app => (
+            {[mathLabEntry].map(app => (
               <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
                 background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
@@ -42435,7 +42435,7 @@ function GKApp({ onBack, isGoalMode = false }) {
  * @param {Object} props
  * @param {Function} props.onBack - Callback to return to home menu
  */
-function AdditionApp({ onBack, initialMode, initialDifficulty, initialNumQuestions, initialStarted }) {
+function AdditionApp({ onBack, initialMode, initialDifficulty, initialNumQuestions, initialStarted, isGoalMode = false }) {
   // Mode selection: 'standard' (default), 'counting' (Visual Counting), 'scale' (Balance Scale)
   const [additionMode, setAdditionMode] = useState(initialMode || 'standard')
 
@@ -42811,23 +42811,7 @@ const fetchQuestion = async (selectedDifficulty = difficulty) => {
             Practice addition!
           </p>
 
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
-              Select Game Mode:
-            </h3>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {[['standard', '🔢 Standard Quiz'], ['counting', '🍎 Visual Counting'], ['scale', '⚖️ Balance Scale']].map(([val, lbl]) => (
-                <button key={val} onClick={() => setAdditionMode(val)} style={{
-                  background: additionMode === val ? '#F08C46' : 'transparent',
-                  border: additionMode === val ? '1px solid #F08C46' : '1px solid #5B5048',
-                  borderRadius: '50px', padding: '8px 16px',
-                  color: additionMode === val ? '#FFF' : '#988D84', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
-                }}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-          </div>
+
 
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ color: '#F4F1ED', fontSize: '0.9rem', margin: '0 0 16px', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>
