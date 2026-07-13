@@ -36302,16 +36302,6 @@ function Home({ onSelect }) {
             borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-card)',
             padding: '6px 0', minWidth: '200px', overflow: 'hidden'
           }}>
-            <button onClick={() => { setMenuOpen(false); onSelect('learning_journey') }} style={{
-              display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-text)',
-              fontFamily: 'var(--font-body)', fontSize: '0.95rem', transition: 'background var(--transition)',
-              borderBottom: '1.5px solid var(--clr-border)'
-            }} onMouseEnter={e => e.currentTarget.style.background = 'var(--clr-hover-strong)'}
-               onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-              <strong style={{ color: 'var(--clr-accent)' }}>⭐ Learning Journey</strong>
-              <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--clr-text-soft)', marginTop: '2px' }}>Your guided math pathway</span>
-            </button>
             {featuredApps.map(app => (
               <button key={app.key} onClick={() => { setMenuOpen(false); onSelect(app.key) }} style={{
                 display: 'block', width: '100%', textAlign: 'left', padding: '10px 16px',
@@ -36335,6 +36325,22 @@ function Home({ onSelect }) {
           onChange={e => setSearch(e.target.value)}
         />
       </div>
+      {!search && (
+        <div className="journey-banner-row">
+          <button className="journey-banner-btn" onClick={() => onSelect('learning_journey')}>
+            <div className="journey-banner-content">
+              <div className="journey-banner-header">
+                <span>⭐</span>
+                <h3 className="journey-banner-title">Guided Learning Journey</h3>
+              </div>
+              <p className="journey-banner-subtitle">
+                Embark on a structured, sequential math learning path with checkpoints.
+              </p>
+            </div>
+            <div className="journey-banner-arrow">➔</div>
+          </button>
+        </div>
+      )}
       <div className="menu-grid" ref={gridRef}>
         {filteredRegular.map((app) => (
           <button key={app.key} className={`menu-card ${app.color}`} onClick={() => onSelect(app.key)}>
