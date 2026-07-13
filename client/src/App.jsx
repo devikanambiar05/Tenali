@@ -54,6 +54,7 @@ function useProgressSubmit(revealed, isCorrect, topic, questionId) {
   }, [revealed, isCorrect, topic, questionId]);
 }
 import './App.css'
+import InteractiveLcmHcfApp from './LcmHcfApp';
 import VisualMathLabRedux, {
   FrogJumpTemplate,
   MathMachineTemplate,
