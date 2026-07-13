@@ -47,6 +47,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const wordCreator = require('./wordCreator');
 
 // Initialize Express app and configure middleware
 const app = express();
@@ -9383,6 +9384,12 @@ app.post('/api/learning-journey/checkpoint/verify', auth.requireAuth, async (req
     res.status(400).json({ error: err.message });
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WORD CREATOR PUZZLE ROUTER (wordcreator-api)
+// ═══════════════════════════════════════════════════════════════════════════
+const wordCreatorRouter = require('./routes/wordCreator');
+app.use('/wordcreator-api', wordCreatorRouter);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // /graph — Prerequisite DAG visualisation
