@@ -41266,9 +41266,6 @@ function Home({ onSelect, isGoalSelection = false, onBack }) {
   // All regular quiz apps sorted alphabetically by name
   const regularApps = [
     { key: 'comic-addition', name: 'Comic Addition', subtitle: 'Story Mode', color: 'purple' },
-    { key: 'custom', name: 'Custom Lesson', subtitle: 'Build your own mixed quiz', color: 'blue' },
-    { key: 'gym', name: 'Gym', subtitle: 'Adaptive workout across all 7 gym puzzles', color: 'green' },
-    { key: 'randommix', name: 'Random Mix', subtitle: 'Adaptive cross-topic quiz', color: 'purple' },
     { key: 'angles', name: 'Angles', subtitle: 'Lines, points, parallel lines', color: 'green' },
     { key: 'banking', name: 'Banking (RD)', subtitle: 'Interest & recurring deposits', color: 'blue' },
     { key: 'bearings', name: 'Bearings', subtitle: 'Three-figure bearings', color: 'green' },
