@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @fileoverview Tenali - Educational Quiz Platform (React Frontend)
  *
  * This monolithic React application serves as the main frontend for Tenali, an adaptive
@@ -36366,7 +36366,7 @@ function App() {
   }
 
   // Route: /vachana → Vachana Mathematical Literacy Lab
-  if (pathname === '/vachana') {
+  if (pathname === '/vachana' || pathname.startsWith('/vachana/')) {
     return (
       <>
         <button className="theme-toggle" onClick={toggleTheme} title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>

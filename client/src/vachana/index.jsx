@@ -128,8 +128,11 @@ export default function Vachana({ onBack }) {
     selectTab(null);
   };
 
-  // Handle browser Back/Forward navigation
+  // Handle browser Back/Forward navigation & initial URL alignment
   useEffect(() => {
+    if (window.location.pathname === '/') {
+      pushTabUrl(activeTab);
+    }
     const onPopState = () => setActiveTab(getTabFromUrl());
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
