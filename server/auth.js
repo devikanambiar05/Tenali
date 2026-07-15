@@ -92,6 +92,55 @@ StudentAttemptLogSchema.index({ studentId: 1, challengeType: 1, topicKey: 1 });
 
 const StudentAttemptLog = mongoose.model('StudentAttemptLog', StudentAttemptLogSchema);
 
+// ─── Scalable Models for High Volume Production ─────────────────────────────
+
+// 1. UserStatsSchema: Separating frequently-updated stats from core user profiles
+const UserStatsSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true, index: true },
+  streak: { type: Number, default: 0 },
+  lastActiveDate: { type: String, default: "" },
+  totalSolved: { type: Number, default: 0 },
+  coins: { type: Number, default: 0 },
+  xpScore: { type: Number, default: 0 },
+  updatedAt: { type: Date, default: Date.now }
+});
+const UserStats = mongoose.model('UserStats', UserStatsSchema);
+
+// 2. UserMilestoneSchema: Storing journey milestones as isolated documents
+const UserMilestoneSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  event: { type: String, required: true },
+  date: { type: Date, default: Date.now },
+  type: { type: String, enum: ['system', 'topic', 'collection', 'streak'], required: true },
+  badgeType: { type: String, default: 'topic' }
+});
+// Compound index for sorted timeline queries per user
+UserMilestoneSchema.index({ userId: 1, date: -1 });
+const UserMilestone = mongoose.model('UserMilestone', UserMilestoneSchema);
+
+// 3. UserTopicProgressSchema: Tracks badge status and level upgrades per quiz topic
+const UserTopicProgressSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  topicKey: { type: String, required: true },
+  level: { type: String, enum: ['blue', 'bronze', 'silver', 'gold', 'locked'], default: 'locked' },
+  startedAt: { type: Date, default: Date.now },
+  unlockedAt: { type: Date }
+});
+// Unique index to prevent duplicate progress rows per user/topic pair
+UserTopicProgressSchema.index({ userId: 1, topicKey: 1 }, { unique: true });
+const UserTopicProgress = mongoose.model('UserTopicProgress', UserTopicProgressSchema);
+
+// 4. UserCollectionProgressSchema: Track completed collector collections / album badges
+const UserCollectionProgressSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  collectionId: { type: String, required: true },
+  completed: { type: Boolean, default: false },
+  completedAt: { type: Date }
+});
+// Unique index for collection progress lookup
+UserCollectionProgressSchema.index({ userId: 1, collectionId: 1 }, { unique: true });
+const UserCollectionProgress = mongoose.model('UserCollectionProgress', UserCollectionProgressSchema);
+
 // ─── Connection + seeding ────────────────────────────────────────────────────
 
 let connected = false;
@@ -179,4 +228,4 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
 });
 
-module.exports = { connectMongo, seedUsers, router, requireAuth, User, Progress, StudentAttemptLog };
+module.exports = { connectMongo, seedUsers, router, requireAuth, User, Progress, StudentAttemptLog, UserStats, UserMilestone, UserTopicProgress, UserCollectionProgress };
