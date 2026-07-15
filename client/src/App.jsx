@@ -42633,7 +42633,7 @@ function App() {
             {active.message}
           </p>
           <p className="celebration-subtext" style={{ fontSize: '0.85rem', opacity: 0.72, marginTop: '8px', color: 'var(--clr-text-soft)', fontWeight: '500', lineHeight: '1.4' }}>
-            Go to your profile to pin your new badge and showcase your achievement!
+            Go to profile to see your achievements and keep learning to earn more badges
           </p>
           <button className="celebration-btn" onClick={dismissCelebration} style={{ marginTop: '16px' }}>
             Awesome!
