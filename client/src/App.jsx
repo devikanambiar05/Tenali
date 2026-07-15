@@ -42438,6 +42438,14 @@ function App() {
         message: "Congratulations! You have unlocked the 7-Day Streak badge for maintaining an active learning streak for 7 consecutive days."
       });
     }
+    if (streak < 15 && finalStreak >= 15) {
+      enqueues.push({
+        title: "Streak Milestone!",
+        badgeType: "streak_15",
+        level: "",
+        message: "Congratulations! You have unlocked the 15-Day Streak badge for maintaining an active learning streak for 15 consecutive days."
+      });
+    }
     if (streak < 30 && finalStreak >= 30) {
       enqueues.push({
         title: "Streak Milestone!",
@@ -44741,6 +44749,7 @@ function ProfileShowcase({ completedTopics = [], onSelectTopic }) {
     const streaksConfig = [
       { days: 3, id: 'streak_3', name: '3-Day Streak' },
       { days: 7, id: 'streak_7', name: '7-Day Streak' },
+      { days: 15, id: 'streak_15', name: '15-Day Streak' },
       { days: 30, id: 'streak_30', name: '30-Day Streak' }
     ]
     streaksConfig.forEach(s => {

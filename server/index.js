@@ -9243,7 +9243,7 @@ function ensureUserMilestones(user) {
     });
   }
 
-  const streakMilestones = [3, 7, 30];
+  const streakMilestones = [3, 7, 15, 30];
   streakMilestones.forEach(days => {
     if ((user.streak || 0) >= days) {
       const eventName = `Reached a ${days}-Day Streak!`;
@@ -9330,7 +9330,7 @@ app.post('/api/progress', express.json(), async (req, res) => {
       }
     });
 
-    const streakMilestones = [3, 7, 30];
+    const streakMilestones = [3, 7, 15, 30];
     streakMilestones.forEach(days => {
       if (oldStreak < days && (user.streak || 0) >= days) {
         const eventName = `Reached a ${days}-Day Streak!`;
