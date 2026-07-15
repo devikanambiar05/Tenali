@@ -78,10 +78,6 @@ import { VOCAB_CORPUS } from './vocabCorpus'
 // API base URL from environment variables (Vite)
 const API = import.meta.env.VITE_API_BASE_URL || '';
 
-// App version — increment with each commit
-const TENALI_VERSION = '1.0.86'
-const TENALI_BUILD_DATE = '2026-05-03 18:28 IST'
-
 // ─── Auth helpers ───────────────────────────────────────────────────────────
 // Tiny pub/sub on top of localStorage so AuthMenu and AuthGate stay in sync.
 const AUTH_TOKEN_KEY = 'tenali-auth-token'
@@ -299,22 +295,6 @@ function AuthGate({ children }) {
     </div>
   )
 }
-
-// Inject version badge into DOM once (appears on all routes)
-; (() => {
-  if (typeof document !== 'undefined' && !document.getElementById('tenali-version')) {
-    const el = document.createElement('div')
-    el.id = 'tenali-version'
-    Object.assign(el.style, {
-      position: 'fixed', top: '8px', right: '12px', zIndex: '9999',
-      fontSize: '0.65rem', opacity: '0.55', pointerEvents: 'none',
-      textAlign: 'right', lineHeight: '1.4', fontFamily: 'system-ui, sans-serif',
-      color: 'var(--clr-text-soft)',
-    })
-    el.innerHTML = `<div>v${TENALI_VERSION}</div><div>${TENALI_BUILD_DATE}</div>`
-    document.body.appendChild(el)
-  }
-})()
 
 // Default number of questions for quizzes
 const DEFAULT_TOTAL = 20
@@ -55371,7 +55351,6 @@ const loadQuestion = async () => {
             <div className="given">Given: {varStr}</div>
           </div>
           <div className="single-input-row">
-            <label className="coeff-label">f = </label>
             <input className="answer-input" type="text" value={answer} disabled={revealed}
               onChange={e => { const v = e.target.value; if (v === '' || v === '-' || v === '.' || /^-?\d*\.?\d*$/.test(v)) setAnswer(v) }}
               onKeyDown={e => { if (e.key === 'Enter') handleSubmit() }} autoFocus />
