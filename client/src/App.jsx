@@ -43608,12 +43608,12 @@ function ColumnAdditionApp({ onBack, initialDifficulty, initialNumQuestions, ini
             {feedback && (
               <div style={{
                 textAlign: 'left', padding: '12px 16px', borderRadius: '8px', margin: '8px 0',
-                background: isCorrect ? 'var(--clr-correct-bg)' : 'var(--clr-wrong-bg)',
+                background: isCorrect ? 'rgba(92, 184, 122, 0.25)' : 'rgba(224, 90, 74, 0.25)',
                 color: isCorrect ? 'var(--clr-correct)' : 'var(--clr-wrong)',
                 fontWeight: 600, fontSize: '0.9rem',
                 whiteSpace: 'pre-line', lineHeight: '1.6',
                 maxHeight: '300px', overflowY: 'auto',
-                border: '1px solid var(--clr-border)'
+                border: isCorrect ? '2px solid var(--clr-correct)' : '2px solid var(--clr-wrong)'
               }}>{feedback}</div>
             )}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
@@ -44449,12 +44449,12 @@ function ColumnMultiplicationApp({ onBack, initialDifficulty, initialNumQuestion
             {feedback && (
               <div style={{
                 textAlign: 'left', padding: '12px 16px', borderRadius: '8px', margin: '8px 0',
-                background: isCorrect ? 'var(--clr-correct-bg)' : 'var(--clr-wrong-bg)',
+                background: isCorrect ? 'rgba(92, 184, 122, 0.25)' : 'rgba(224, 90, 74, 0.25)',
                 color: isCorrect ? 'var(--clr-correct)' : 'var(--clr-wrong)',
                 fontWeight: 600, fontSize: '0.9rem',
                 whiteSpace: 'pre-line', lineHeight: '1.6',
                 maxHeight: '300px', overflowY: 'auto',
-                border: '1px solid var(--clr-border)'
+                border: isCorrect ? '2px solid var(--clr-correct)' : '2px solid var(--clr-wrong)'
               }}>{feedback}</div>
             )}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
@@ -44878,12 +44878,12 @@ function ColumnSubtractionApp({ onBack, initialDifficulty, initialNumQuestions, 
             {feedback && (
               <div style={{
                 textAlign: 'left', padding: '12px 16px', borderRadius: '8px', margin: '8px 0',
-                background: isCorrect ? 'var(--clr-correct-bg)' : 'var(--clr-wrong-bg)',
+                background: isCorrect ? 'rgba(92, 184, 122, 0.25)' : 'rgba(224, 90, 74, 0.25)',
                 color: isCorrect ? 'var(--clr-correct)' : 'var(--clr-wrong)',
                 fontWeight: 600, fontSize: '0.9rem',
                 whiteSpace: 'pre-line', lineHeight: '1.6',
                 maxHeight: '300px', overflowY: 'auto',
-                border: '1px solid var(--clr-border)'
+                border: isCorrect ? '2px solid var(--clr-correct)' : '2px solid var(--clr-wrong)'
               }}>{feedback}</div>
             )}
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '12px 0', flexWrap: 'wrap' }}>
