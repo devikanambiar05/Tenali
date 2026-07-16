@@ -16,7 +16,7 @@
 
 .choose-mode-heading {
   font-family: 'Baloo 2', sans-serif;
-  font-size: clamp(1.8rem, 5vw, 2.4rem); /* reduced size */
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
   font-weight: 800;
   color: var(--clr-text);
   margin: 0;
@@ -33,35 +33,33 @@
   max-width: 800px;
 }
 
-/* Card Styling (tightened footprint and padding) */
+/* ── Base card ──────────────────────────────────────────── */
 .choose-mode-card {
   border-radius: 24px;
-  padding: 18px; /* reduced from 32px */
+  padding: 18px;
   cursor: pointer;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem; /* reduced gap */
+  gap: 0.5rem;
   box-sizing: border-box;
-  width: 215px; /* reduced from 320px (approx 33% reduction) */
+  width: 215px;
   position: relative;
   transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275),
               box-shadow 0.25s ease-out,
               border-color 0.25s ease-out;
 }
 
-/* Tactile Click / Press Animation */
 .choose-mode-card:active {
   transform: scale(0.96) translateY(2px);
 }
 
-/* Let's Learn! (Primary Warm Dark Brown Card) */
+/* ── Let's Learn! card (default: highlighted) ─────────── */
 .choose-mode-card.learning {
-  position: relative;
-  background: #2C2118; /* warm dark brown surface */
-  border: 3.5px solid #FF9D42; /* warm orange border */
+  background: var(--clr-card, #2C2118);
+  border: 3.5px solid var(--clr-accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   transform: scale(1.04);
 }
@@ -82,23 +80,29 @@
 
 @keyframes tlf-learning-halo-breathe {
   0% {
-    box-shadow: 0 0 20px 4px rgba(255, 157, 66, 0.18);
+    box-shadow: 0 0 20px 4px var(--clr-accent-soft);
   }
   100% {
-    box-shadow: 0 0 32px 8px rgba(255, 157, 66, 0.35);
+    box-shadow: 0 0 32px 8px var(--clr-accent-soft);
   }
 }
 
 .choose-mode-card.learning:hover {
   transform: scale(1.07) translateY(-6px);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
-  border-color: #FFAE5D;
+  border-color: var(--clr-accent);
 }
 
-/* Quiz Time! (Secondary Muted Dark Card) */
+.choose-mode-card.learning:focus-visible {
+  outline: none;
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px var(--clr-accent-soft), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Quiz Time! card (default: muted) ─────────────────── */
 .choose-mode-card.quiz {
-  background: #241F1C; /* darker, more neutral surface */
-  border: 2px solid rgba(255, 245, 230, 0.08); /* muted border */
+  background: var(--clr-surface, #241F1C);
+  border: 2px solid var(--clr-border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   opacity: 0.95;
 }
@@ -106,19 +110,83 @@
 .choose-mode-card.quiz:hover {
   transform: translateY(-4px);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
-  border-color: rgba(255, 245, 230, 0.18);
+  border-color: var(--clr-accent);
   opacity: 1;
 }
 
-/* Mascot Containers */
+.choose-mode-card.quiz:focus-visible {
+  outline: none;
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px var(--clr-accent-soft), 0 4px 16px rgba(0, 0, 0, 0.25);
+  opacity: 1;
+}
+
+/* ── Learning card — completed state ──────────────────── */
+.choose-mode-card.learning.completed {
+  border-color: var(--clr-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: none;
+  opacity: 0.92;
+}
+
+.choose-mode-card.learning.completed::before {
+  animation: none;
+  box-shadow: none;
+}
+
+.choose-mode-card.learning.completed:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+  border-color: var(--clr-accent);
+}
+
+.choose-mode-card.learning.completed:focus-visible {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px var(--clr-accent-soft), 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Quiz card — highlighted state (post-learning) ────── */
+.choose-mode-card.quiz.highlighted {
+  position: relative;
+  border: 3.5px solid var(--clr-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  transform: scale(1.04);
+  opacity: 1;
+}
+
+.choose-mode-card.quiz.highlighted::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  background: transparent;
+  z-index: -1;
+  pointer-events: none;
+  animation: tlf-learning-halo-breathe 2.8s ease-in-out infinite alternate;
+}
+
+.choose-mode-card.quiz.highlighted:hover {
+  transform: scale(1.07) translateY(-6px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+  border-color: var(--clr-accent);
+}
+
+.choose-mode-card.quiz.highlighted:focus-visible {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px var(--clr-accent-soft), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Mascot containers ────────────────────────────────── */
 .choose-mode-mascot-container {
-  height: 90px; /* reduced from 130px */
+  height: 90px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Circular Backdrop wrapper to make mascots pop on dark backgrounds */
 .choose-mode-mascot-backdrop {
   display: flex;
   align-items: center;
@@ -126,11 +194,10 @@
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: rgba(253, 246, 227, 0.08); /* soft cream / warm beige circle, low contrast, no hard outline */
+  background: rgba(253, 246, 227, 0.08);
   box-sizing: border-box;
 }
 
-/* Looping Idle animation for the Honeybee Mascot */
 .choose-mode-mascot.animate {
   animation: tlf-mascot-idle 3s ease-in-out infinite alternate;
 }
@@ -141,20 +208,23 @@
   100% { transform: translateY(0) rotate(-3deg); }
 }
 
-/* Titles and Typography (Baloo 2 Round styles) */
+/* ── Typography ───────────────────────────────────────── */
 .choose-mode-title {
   font-family: 'Baloo 2', sans-serif;
-  font-size: 1.4rem; /* reduced from 1.8rem */
+  font-size: 1.4rem;
   font-weight: 800;
   margin: 0;
+  color: var(--clr-accent);
 }
 
-.choose-mode-card.learning .choose-mode-title {
-  color: #FF9D42; /* warm orange */
-}
-
+.choose-mode-card.learning.completed .choose-mode-title,
 .choose-mode-card.quiz .choose-mode-title {
-  color: #8A9BB5; /* readable cool gray-blue */
+  color: var(--clr-text-soft);
+}
+
+.choose-mode-card.quiz.highlighted .choose-mode-title,
+.choose-mode-card.learning.completed:hover .choose-mode-title {
+  color: var(--clr-accent);
 }
 
 .choose-mode-desc {
@@ -163,25 +233,18 @@
   font-weight: 600;
   line-height: 1.35;
   margin: 0;
+  color: var(--clr-text-soft);
 }
 
-.choose-mode-card.learning .choose-mode-desc {
-  color: #C9BEB2; /* light warm gray */
-}
-
-.choose-mode-card.quiz .choose-mode-desc {
-  color: #C9BEB2; /* light warm gray */
-}
-
-/* Button Stylings (scaled to standard button proportion ~85%) */
+/* ── Buttons ──────────────────────────────────────────── */
 .choose-mode-button {
   margin-top: 0.5rem;
-  width: 85%; /* 85% of card width instead of edge-to-edge full banner */
-  padding: 10px 14px; /* reduced padding */
+  width: 85%;
+  padding: 10px 14px;
   border-radius: 16px;
   border: none;
   font-family: 'Baloo 2', sans-serif;
-  font-size: 1.05rem; /* reduced font-size */
+  font-size: 1.05rem;
   font-weight: 800;
   cursor: pointer;
   text-align: center;
@@ -193,46 +256,58 @@
   transform: translateY(2px);
 }
 
-/* Let's Go Button (Bright Vibrant Orange) */
 .choose-mode-button.lets-go {
-  background: #FF9D42;
+  background: var(--clr-accent);
   color: #ffffff;
-  border-bottom: 3px solid #d37318;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.2);
 }
 
 .choose-mode-button.lets-go:hover {
   filter: brightness(1.05);
 }
 
-/* Let's Play Button (Muted Grey/Blue Accent) */
+.choose-mode-card.learning.completed .choose-mode-button.lets-go {
+  background: var(--clr-text-soft);
+  border-bottom: 3px solid rgba(0, 0, 0, 0.15);
+}
+
 .choose-mode-button.lets-play {
-  background: #A3AED0;
+  background: var(--clr-text-soft);
   color: #ffffff;
-  border-bottom: 3px solid #7885ad;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.15);
 }
 
 .choose-mode-button.lets-play:hover {
   filter: brightness(1.05);
 }
 
-/* Responsive constraints */
+.choose-mode-card.quiz.highlighted .choose-mode-button.lets-play {
+  background: var(--clr-accent);
+  border-bottom: 3px solid rgba(0, 0, 0, 0.2);
+}
+
+/* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 600px) {
   .choose-mode-options {
     flex-direction: column;
     align-items: center;
     gap: 1.5rem;
   }
-  
+
   .choose-mode-card {
     width: 90%;
     max-width: 240px;
   }
-  
-  .choose-mode-card.learning {
+
+  .choose-mode-card.learning,
+  .choose-mode-card.learning.completed,
+  .choose-mode-card.quiz.highlighted {
     transform: none;
   }
-  
-  .choose-mode-card.learning:hover {
+
+  .choose-mode-card.learning:hover,
+  .choose-mode-card.learning.completed:hover,
+  .choose-mode-card.quiz.highlighted:hover {
     transform: translateY(-4px);
   }
 }

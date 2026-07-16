@@ -339,6 +339,24 @@ const CORRECT_ENCOURAGEMENTS = [
   "You're doing great!"
 ];
 
+const INCORRECT_ENCOURAGEMENTS = [
+  "Nice try! Let's count together.",
+  "Good effort! Give it another go.",
+  "You're learning with every try.",
+  "That's okay. Let's work through it together.",
+  "Keep going—you can do this.",
+  "Almost there! Let's try again.",
+  "You're getting better every time.",
+  "Let's count carefully together.",
+  "Don't worry, we'll figure it out.",
+  "Great job sticking with it.",
+  "Learning takes practice. Let's keep going.",
+  "You're doing well. Try once more.",
+  "Let's take another careful look.",
+  "Every try helps you learn.",
+  "Keep trying—you've got this."
+];
+
 // --- Main TryItAssessment Component ---
 
 export default function TryItAssessment({ onFinished, initialCharacter }) {
@@ -370,8 +388,18 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
   // Active counting state
   const [markedIndices, setMarkedIndices] = useState({});
 
+  // Guided Counting scaffold state
+  const [scaffoldMode, setScaffoldMode] = useState('none'); // 'none' | 'guided' | 'assisted'
+  const [scaffoldPhase, setScaffoldPhase] = useState('idle'); // 'idle' | 'animating' | 'revealed'
+  const [consecutiveMistakes, setConsecutiveMistakes] = useState(0);
+  const [totalMistakes, setTotalMistakes] = useState(0);
+  const [animIndex, setAnimIndex] = useState(-1);
+  const lastIncorrectMsgRef = useRef(null);
+
+  const isInteractionLocked = scaffoldMode !== 'none' && scaffoldPhase === 'animating';
+
   const handleItemClick = (idx) => {
-    if (isAnswered) return;
+    if (isAnswered || isInteractionLocked) return;
     setMarkedIndices((prev) => ({
       ...prev,
       [idx]: !prev[idx]
@@ -398,6 +426,29 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
 
     return () => observer.disconnect();
   }, []);
+
+  // Start counting animation when scaffold is active and question is fresh
+  useEffect(() => {
+    if (scaffoldMode !== 'none' && scaffoldPhase === 'idle' && !isAnswered) {
+      const timer = setTimeout(() => {
+        setScaffoldPhase('animating');
+        setAnimIndex(0);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [scaffoldMode, scaffoldPhase, isAnswered]);
+
+  // Sequence the counting animation: one item glows per tick
+  useEffect(() => {
+    if (scaffoldPhase !== 'animating' || animIndex < 0) return;
+    if (animIndex < activeQuestion.quantity) {
+      const timer = setTimeout(() => setAnimIndex(prev => prev + 1), 1500);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(() => setScaffoldPhase('revealed'), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [animIndex, scaffoldPhase, activeQuestion.quantity]);
 
   // Compute position coordinates dynamically inside the safe boundaries margin (Top-Left corner)
   const scatterPositions = useMemo(() => {
@@ -438,12 +489,12 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
   }, [activeQuestion?.id]);
 
   const handleMCSelect = (val) => {
-    if (isAnswered) return;
+    if (isAnswered || isInteractionLocked) return;
     setSelectedOption(val);
   };
 
   const handleNumericChange = (e) => {
-    if (isAnswered) return;
+    if (isAnswered || isInteractionLocked) return;
     const val = e.target.value;
     if (val === '' || /^\d+$/.test(val)) {
       setNumericAnswer(val);
@@ -451,7 +502,7 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
   };
 
   const handleSubmit = () => {
-    if (isAnswered) return;
+    if (isAnswered || isInteractionLocked) return;
 
     let userAnswer = 0;
     if (activeQuestion.type === 'mc') {
@@ -477,7 +528,12 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
       }, 1200);
     } else {
       setAnswerStatus('incorrect');
-      setFeedbackText("😊 No problem!\nLet's try some more questions.");
+      let msg;
+      do {
+        msg = INCORRECT_ENCOURAGEMENTS[Math.floor(Math.random() * INCORRECT_ENCOURAGEMENTS.length)];
+      } while (msg === lastIncorrectMsgRef.current && INCORRECT_ENCOURAGEMENTS.length > 1);
+      lastIncorrectMsgRef.current = msg;
+      setFeedbackText(msg);
 
       // Transition automatically after 3 seconds
       setTimeout(() => {
@@ -487,17 +543,59 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
   };
 
   const advanceQuestion = (isCorrect) => {
-    // Reset answer fields
     setSelectedOption(null);
     setNumericAnswer('');
     setIsAnswered(false);
     setAnswerStatus(null);
     setFeedbackText('');
     setMarkedIndices({});
+    setScaffoldPhase('idle');
+    setAnimIndex(-1);
+
+    // --- Scaffold state machine ---
+    let newScaffoldMode = scaffoldMode;
+    let newConsecutive = consecutiveMistakes;
+    let newTotal = totalMistakes;
+
+    if (scaffoldMode !== 'none') {
+      // Already inside scaffold
+      if (isCorrect) {
+        if (scaffoldMode === 'guided') {
+          newScaffoldMode = 'none';
+          newConsecutive = 0;
+          newTotal = 0;
+        } else {
+          // Correct in assisted → guided for next question
+          newScaffoldMode = 'guided';
+          newConsecutive = 0;
+        }
+      } else {
+        if (scaffoldMode === 'guided') {
+          newScaffoldMode = 'assisted';
+        }
+        newConsecutive += 1;
+        newTotal += 1;
+      }
+    } else {
+      // Not in scaffold — check trigger
+      if (!isCorrect) {
+        newConsecutive += 1;
+        newTotal += 1;
+        if (newConsecutive >= 3 || newTotal >= 3) {
+          newScaffoldMode = 'guided';
+        }
+      } else {
+        newConsecutive = 0;
+      }
+    }
+
+    setScaffoldMode(newScaffoldMode);
+    setConsecutiveMistakes(newConsecutive);
+    setTotalMistakes(newTotal);
+    // --- End scaffold state machine ---
 
     if (isCorrect) {
       if (loopMode === 'original') {
-        // Original correct -> move to next level!
         if (level < 3) {
           const nextLevel = level + 1;
           const newOrig = generateOriginalQuestion(nextLevel);
@@ -508,16 +606,13 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
           setLoopMode('original');
           setPreviousPracticeCount(null);
         } else {
-          // Finished level 3 original correctly -> Try It is completed!
           onFinished(activeQuestion?.characterType || 'apple');
         }
       } else {
-        // Practice question answered correctly -> Go back to original question
         setLoopMode('original');
         setCurrentQuestionState(originalQuestion);
       }
     } else {
-      // Answered incorrectly -> generate a NEW practice question
       const newPractice = generatePracticeQuestion(level, previousPracticeCount);
       
       setLoopMode('practice');
@@ -538,29 +633,52 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
           <h2 className="tlf-assessment-title">
             Count the {pluralName}.
           </h2>
-          
+
+          {/* Scaffold banner */}
+          {scaffoldMode !== 'none' && !isAnswered && (
+            <div className={`tlf-scaffold-banner ${scaffoldPhase}`}>
+              {scaffoldPhase === 'animating'
+                ? `Tenali is counting the ${pluralName}...`
+                : scaffoldMode === 'assisted'
+                  ? 'Tap the glowing answer!'
+                  : `Now you count the ${pluralName}!`}
+            </div>
+          )}
+
           <p className="tlf-assessment-helper">
-            {currentQuestion.type === 'mc' ? 'Choose the correct answer.' : 'Type your answer.'}
+            {isAnswered
+              ? '\u00A0'
+              : scaffoldMode !== 'none' && scaffoldPhase !== 'idle'
+                ? '\u00A0'
+                : currentQuestion.type === 'mc'
+                  ? 'Choose the correct answer.'
+                  : 'Type your answer.'}
           </p>
 
           {/* Natural scattered characters container */}
           <div className="tlf-scatter-canvas" ref={canvasRef}>
             {scatterPositions.map((pos, idx) => {
               const isMarked = !!markedIndices[idx];
+              const isGlowing = scaffoldMode !== 'none' && scaffoldPhase === 'animating' && idx === animIndex;
+              const hasCountLabel = scaffoldMode !== 'none' && animIndex >= 0 && idx <= animIndex;
               return (
-                <div 
-                  key={idx} 
-                  className={`tlf-scatter-item${isMarked ? ' marked' : ''}`}
+                <div
+                  key={idx}
+                  className={`tlf-scatter-item${isMarked ? ' marked' : ''}${isGlowing ? ' counting-glow' : ''}`}
                   onClick={() => handleItemClick(idx)}
-                  style={{ 
-                    left: `${pos.x}px`, 
+                  style={{
+                    left: `${pos.x}px`,
                     top: `${pos.y}px`,
-                    animationDelay: `${idx * 0.05}s`
+                    animationDelay: `${idx * 0.05}s`,
+                    pointerEvents: isInteractionLocked ? 'none' : undefined
                   }}
                 >
                   <CharComponent size={56} />
                   {isMarked && (
                     <div className="tlf-item-checkmark-badge">✓</div>
+                  )}
+                  {hasCountLabel && (
+                    <div className="tlf-counting-label">{idx + 1}</div>
                   )}
                 </div>
               );
@@ -569,7 +687,7 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
 
           {/* Multiple choice rendering */}
           {currentQuestion.type === 'mc' && (
-            <div className="tlf-options-row">
+            <div className={`tlf-options-row${isInteractionLocked ? ' scaffold-hidden' : ''}${scaffoldMode !== 'none' && scaffoldPhase === 'revealed' ? ' scaffold-revealed' : ''}`}>
               {options.map((opt) => {
                 let statusClass = '';
                 if (isAnswered) {
@@ -580,6 +698,8 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
                   }
                 } else if (selectedOption === opt) {
                   statusClass = 'selected';
+                } else if (scaffoldMode === 'assisted' && scaffoldPhase === 'revealed' && opt === currentQuestion.quantity) {
+                  statusClass = 'assisted-highlight';
                 }
 
                 return (
@@ -587,7 +707,7 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
                     key={opt}
                     className={`tlf-option-btn ${statusClass}`}
                     onClick={() => handleMCSelect(opt)}
-                    disabled={isAnswered}
+                    disabled={isAnswered || isInteractionLocked}
                   >
                     {opt}
                   </button>
@@ -598,7 +718,7 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
 
           {/* Free numeric input rendering */}
           {currentQuestion.type === 'numeric' && (
-            <div className="tlf-input-container">
+            <div className={`tlf-input-container${isInteractionLocked ? ' scaffold-hidden' : ''}${scaffoldMode !== 'none' && scaffoldPhase === 'revealed' ? ' scaffold-revealed' : ''}`}>
               <input
                 className={`tlf-numeric-input ${isAnswered && answerStatus === 'incorrect' ? 'incorrect' : ''}`}
                 type="text"
@@ -606,7 +726,7 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
                 pattern="[0-9]*"
                 value={numericAnswer}
                 onChange={handleNumericChange}
-                disabled={isAnswered}
+                disabled={isAnswered || isInteractionLocked}
                 autoFocus
                 placeholder="?"
               />
@@ -615,11 +735,12 @@ export default function TryItAssessment({ onFinished, initialCharacter }) {
 
           {/* Submit button */}
           <button
-            className="tlf-submit-btn"
+            className={`tlf-submit-btn${isInteractionLocked ? ' scaffold-hidden' : ''}${scaffoldMode !== 'none' && scaffoldPhase === 'revealed' ? ' scaffold-revealed' : ''}`}
             onClick={handleSubmit}
             disabled={
-              isAnswered || 
-              (currentQuestion.type === 'mc' && selectedOption === null) || 
+              isAnswered ||
+              isInteractionLocked ||
+              (currentQuestion.type === 'mc' && selectedOption === null) ||
               (currentQuestion.type === 'numeric' && numericAnswer === '')
             }
           >

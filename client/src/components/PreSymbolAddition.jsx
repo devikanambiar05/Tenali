@@ -13,6 +13,14 @@ const CORRECT_ENCOURAGEMENTS = [
   "You're doing great!"
 ];
 
+function classifyMisconception(leftCount, rightCount, answer) {
+  const concat1 = parseInt(`${leftCount}${rightCount}`, 10);
+  const concat2 = parseInt(`${rightCount}${leftCount}`, 10);
+  if (answer === concat1 || answer === concat2) return 'concatenation';
+  if (Math.abs(answer - (leftCount + rightCount)) <= 2) return 'counting-error';
+  return 'symbol-misunderstanding';
+}
+
 function generateBoxGridItems(quantity) {
   const cells = [];
   for (let r = 0; r < 2; r++) {
@@ -48,6 +56,7 @@ export default function PreSymbolAddition({ onFinished, onFailed, initialCharact
   const [currentStage, setCurrentStage] = useState(() => startAtStageB ? 'B' : 'A'); // 'A' or 'B'
   const [stageBQuestionNum, setStageBQuestionNum] = useState(1); // 1 or 2
   const [attemptCount, setAttemptCount] = useState(0); // Shared attempt counter across Mission 2
+  const [misconceptions, setMisconceptions] = useState([]); // Adaptive remediation: classified mistake types
 
   // Card items configurations
   const [leftItems, setLeftItems] = useState(() => generateBoxGridItems(leftCount));
@@ -161,12 +170,16 @@ export default function PreSymbolAddition({ onFinished, onFailed, initialCharact
       const msg = getRandomIncorrectFeedback();
       setFeedbackText(msg);
       
+      const misconception = classifyMisconception(leftCount, rightCount, userAnswer);
+      const newMisconceptions = [...misconceptions, misconception];
+      setMisconceptions(newMisconceptions);
+
       const newAttempts = attemptCount + 1;
       setAttemptCount(newAttempts);
 
       setTimeout(() => {
         if (newAttempts >= 3) {
-          onFailed(characterType);
+          onFailed(characterType, newMisconceptions);
         } else {
           regenerateQuestion();
         }

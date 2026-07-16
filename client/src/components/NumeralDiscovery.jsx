@@ -13,6 +13,14 @@ const CORRECT_ENCOURAGEMENTS = [
   "You're doing great!"
 ];
 
+function classifyMisconception(leftCount, rightCount, answer) {
+  const concat1 = parseInt(`${leftCount}${rightCount}`, 10);
+  const concat2 = parseInt(`${rightCount}${leftCount}`, 10);
+  if (answer === concat1 || answer === concat2) return 'concatenation';
+  if (Math.abs(answer - (leftCount + rightCount)) <= 2) return 'counting-error';
+  return 'symbol-misunderstanding';
+}
+
 function generateBoxGridItems(quantity) {
   const cells = [];
   for (let r = 0; r < 2; r++) {
@@ -49,6 +57,7 @@ export default function NumeralDiscovery({ onFinished, onFailed, initialCharacte
   // Abstraction levels: starts directly at NUMERAL_WITH_ICON
   const [representationLevel, setRepresentationLevel] = useState('NUMERAL_WITH_ICON'); // OBJECTS_ONLY, NUMERAL_WITH_ICON, NUMERAL_ONLY
   const [wrongAttempts, setWrongAttempts] = useState(0); // wrong attempts tracker for current level
+  const [misconceptions, setMisconceptions] = useState([]); // Adaptive remediation: classified mistake types
   const [numeralOnlyCorrectCount, setNumeralOnlyCorrectCount] = useState(0); // tracks correct numeral-only questions
 
   // Progressive Reveal Sequence States
@@ -254,13 +263,17 @@ export default function NumeralDiscovery({ onFinished, onFailed, initialCharacte
       const msg = getRandomIncorrectFeedback();
       setFeedbackText(msg);
       
+      const misconception = classifyMisconception(leftCount, rightCount, userAnswer);
+      const newMisconceptions = [...misconceptions, misconception];
+      setMisconceptions(newMisconceptions);
+
       const newAttempts = wrongAttempts + 1;
       setWrongAttempts(newAttempts);
 
       setTimeout(() => {
         if (newAttempts >= 3) {
           setWrongAttempts(0);
-          onFailed(characterType);
+          onFailed(characterType, newMisconceptions);
         } else {
           regenerateQuestionForLevel(representationLevel);
         }

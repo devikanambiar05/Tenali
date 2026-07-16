@@ -13,8 +13,9 @@ import './ChooseModeScreen.css';
  * @param {Object} props
  * @param {Function} props.onChooseLearning - Callback triggered when Learning Journey is selected
  * @param {Function} props.onChooseAssessment - Callback triggered when Assessment is selected
+ * @param {boolean} props.learningCompleted - Whether the learning path has been fully completed
  */
-export default function ChooseModeScreen({ onChooseLearning, onChooseAssessment }) {
+export default function ChooseModeScreen({ onChooseLearning, onChooseAssessment, learningCompleted = false }) {
   return (
     <LearningContainer>
       <div className="choose-mode-wrapper">
@@ -23,33 +24,33 @@ export default function ChooseModeScreen({ onChooseLearning, onChooseAssessment 
         <div className="choose-mode-options">
           {/* Card 1: Let's Learn! */}
           <div 
-            className="choose-mode-card learning" 
+            className={`choose-mode-card learning${learningCompleted ? ' completed' : ''}`}
             onClick={onChooseLearning}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChooseLearning(); } }}
           >
-            <div className="choose-mode-mascot-container animate">
+            <div className={`choose-mode-mascot-container${learningCompleted ? '' : ' animate'}`}>
               <div className="choose-mode-mascot-backdrop">
                 <KawaiiBee size={80} />
               </div>
             </div>
             <h3 className="choose-mode-title">Let's Learn!</h3>
             <p className="choose-mode-desc">
-              We'll learn together, step by step!
+              {learningCompleted ? 'Completed — click to replay' : 'We\'ll learn together, step by step!'}
             </p>
-            <button className="choose-mode-button lets-go" tabIndex={-1}>Let's Go!</button>
+            <button className="choose-mode-button lets-go" tabIndex={-1}>{learningCompleted ? 'Replay' : 'Let\'s Go!'}</button>
           </div>
 
           {/* Card 2: Quiz Time! */}
           <div 
-            className="choose-mode-card quiz" 
+            className={`choose-mode-card quiz${learningCompleted ? ' highlighted' : ''}`}
             onClick={onChooseAssessment}
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChooseAssessment(); } }}
           >
-            <div className="choose-mode-mascot-container static">
+            <div className={`choose-mode-mascot-container${learningCompleted ? ' animate' : ' static'}`}>
               <div className="choose-mode-mascot-backdrop">
                 <KawaiiStar size={52} />
               </div>
