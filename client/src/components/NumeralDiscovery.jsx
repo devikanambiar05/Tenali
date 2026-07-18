@@ -215,6 +215,7 @@ export default function NumeralDiscovery({ onFinished, onFailed, initialCharacte
       setRepresentationLevel('NUMERAL_ONLY');
       setNumeralOnlyCorrectCount(0);
       setWrongAttempts(0);
+      setMisconceptions([]);
       regenerateQuestionForLevel('NUMERAL_ONLY');
     }, 1200);
   };
